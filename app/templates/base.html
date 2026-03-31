@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or settings.app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-flex">
+        <div>
+          <h1><a href="/">{{ settings.app_title }}</a></h1>
+          <p class="subtle">QR-driven inventory logging for RAD Box parts</p>
+        </div>
+        <nav class="header-nav">
+          <a href="/">Dashboard</a>
+          <a href="/labels">Printable labels</a>
+          <a href="/health">Health</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card narrow">
+  <p><a href="/">&larr; Back to dashboard</a></p>
+  <h2>Update {{ part.name }}</h2>
+  <p class="subtle">
+    SKU: <code>{{ part.sku }}</code>
+    {% if part.container_label %}
+    &nbsp; Container: {{ part.container_label }}
+    {% endif %}
+    &nbsp; Current on hand: <strong>{{ part.on_hand }}</strong>
+  </p>
+  <p class="subtle">Choose whether this scan should add to inventory or subtract from inventory, then submit the quantity.</p>
+
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="stack">
+    <label>
+      Quantity
+      <input type="number" name="quantity" min="1" value="{{ quantity }}" required>
+    </label>
+
+    <label>
+      Operator initials (optional)
+      <input type="text" name="operator" placeholder="RB" value="{{ operator }}">
+    </label>
+
+    <label>
+      Note (optional)
+      <textarea name="note" rows="3" placeholder="Reason, bin refill, damaged part, etc.">{{ note }}</textarea>
+    </label>
+
+    <div class="scan-choice-buttons">
+      <button type="submit" name="action" value="add" class="{% if preferred_action == 'add' %}selected-action{% endif %}">Add inventory</button>
+      <button type="submit" name="action" value="subtract" class="danger {% if preferred_action == 'subtract' %}selected-action{% endif %}">Subtract inventory</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+jinja2
+requests
+qrcode
+pillow
+python-multipart
+python-dotenv

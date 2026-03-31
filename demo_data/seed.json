@@ -1,0 +1,89 @@
+{
+  "parts": [
+    {
+      "sku": "RAD-MP3-PLAYER",
+      "name": "MP3 Player",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SD-8GB",
+      "name": "8 GB SD Card",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-PAM8610-AMP",
+      "name": "HiLetgo PAM8610 Mini Stereo AMP",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-AMP-KNOBS",
+      "name": "Potentiometer Control Knobs for Amp",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-12V-5V-USBC",
+      "name": "12V to 5V Converter USB-C",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-PWR-DIST-1X12",
+      "name": "1x12 Position Power Distribution Board",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-DC-BARREL-GLAND",
+      "name": "DC Barrel Glands",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-CNLINKO-USBC",
+      "name": "CNLINKO USB-C Gland",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-LP12-4PIN-1M",
+      "name": "CNLINKO LP12 4-Pin Circular Connector with 1 Meter Cable",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-AUDIO-GLAND",
+      "name": "Audio Gland",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-AUDIO-JUMP-6IN",
+      "name": "6\" Audio Jump Cable Amp & Out",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-12V-5A-PIGTAIL-M",
+      "name": "12V 5A DC Power Pigtail Cord Male Plug Connectors",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    }
+  ],
+  "kits": []
+}

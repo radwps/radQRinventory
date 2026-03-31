@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card hero">
+  <div>
+    <h2>Inventory dashboard</h2>
+    <p>
+      This build uses <strong>{{ store_mode }}</strong> mode.
+      Each part container gets one printed QR code.
+      Each scan opens a phone page where the operator chooses <strong>Add</strong> or <strong>Subtract</strong> and logs the transaction.
+    </p>
+    {% if settings.enable_kits %}
+    <p class="subtle">Whole-box kit labels are currently enabled.</p>
+    {% else %}
+    <p class="subtle">Whole-box kit labels are currently disabled for this build.</p>
+    {% endif %}
+  </div>
+  {% if store_mode == 'mock' %}
+  <form method="post" action="/demo/reset">
+    <button type="submit">Reset demo data</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Parts</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Part</th>
+          <th>Container</th>
+          <th>On hand</th>
+          <th>Reorder</th>
+          <th>Scan page</th>
+          <th>Quick add</th>
+          <th>Quick subtract</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for part in parts %}
+        <tr class="{% if part.reorder_level > 0 and part.on_hand <= part.reorder_level %}low-stock{% endif %}">
+          <td><code>{{ part.sku }}</code></td>
+          <td>{{ part.name }}</td>
+          <td>{{ part.container_label or '—' }}</td>
+          <td>{{ part.on_hand }}</td>
+          <td>{{ part.reorder_level }}</td>
+          <td><a class="pill secondary" href="/scan/part/{{ part.sku }}">Open scan page</a></td>
+          <td><a class="pill" href="/scan/part/{{ part.sku }}?action=add">Add</a></td>
+          <td><a class="pill danger" href="/scan/part/{{ part.sku }}?action=subtract">Subtract</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if kits %}
+<section class="card">
+  <h3>Kit-level subtract codes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Kit code</th>
+          <th>Kit name</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for kit in kits %}
+        <tr>
+          <td><code>{{ kit.code }}</code></td>
+          <td>{{ kit.name }}</td>
+          <td><a class="pill danger" href="/scan/kit/{{ kit.code }}/subtract">Subtract one full box</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h3>Recent transactions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>SKU</th>
+          <th>Part</th>
+          <th>Action</th>
+          <th>Qty</th>
+          <th>Delta</th>
+          <th>Operator</th>
+          <th>Note</th>
+          <th>Batch</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in transactions %}
+        <tr>
+          <td>{{ txn.created_at }}</td>
+          <td><code>{{ txn.sku }}</code></td>
+          <td>{{ txn.part_name }}</td>
+          <td>{{ txn.action }}</td>
+          <td>{{ txn.quantity }}</td>
+          <td>{{ txn.delta }}</td>
+          <td>{{ txn.operator or '' }}</td>
+          <td>{{ txn.note or '' }}</td>
+          <td><small>{{ txn.batch_id or '' }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

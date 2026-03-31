@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Printable QR labels</h2>
+  <p>
+    Print this page on a laser printer and tape one label to each container.
+    Current base URL: <code>{{ public_base }}</code>
+  </p>
+  {% if 'localhost' in public_base or '127.0.0.1' in public_base %}
+  <p class="warning">These QR codes point to <code>{{ public_base }}</code>. That works only on the computer running the app. For phone scanning, regenerate labels using your computer's LAN IP or a public URL.</p>
+  {% else %}
+  <p class="subtle">These QR codes should be reachable from any phone that can access <code>{{ public_base }}</code>.</p>
+  {% endif %}
+  <p class="subtle">Override the QR destination with <code>?base_url=https://your-app.example.com</code> whenever you need to regenerate labels for a different host.</p>
+</section>
+
+<section class="labels-grid single-qr-grid">
+  {% for label in part_labels %}
+  <article class="label-card">
+    <h3>{{ label.part.name }}</h3>
+    <p>
+      <code>{{ label.part.sku }}</code>
+      {% if label.part.container_label %}
+      &middot; {{ label.part.container_label }}
+      {% endif %}
+    </p>
+    <div class="single-qr-block">
+      <img src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
+      <strong>Scan to add or subtract</strong>
+      <p class="subtle label-help">Choose the action on your phone after scanning.</p>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+{% if kit_labels %}
+<section class="card">
+  <h2>Whole-box subtract labels</h2>
+  <div class="labels-grid">
+    {% for label in kit_labels %}
+    <article class="label-card">
+      <h3>{{ label.kit.name }}</h3>
+      <p><code>{{ label.kit.code }}</code></p>
+      <div class="single-qr-block">
+        <img src="{{ label.subtract_qr }}" alt="Subtract kit QR for {{ label.kit.name }}">
+        <strong>Subtract one full box</strong>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

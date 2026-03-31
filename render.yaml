@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: radbox-qr-inventory
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: APP_TITLE
+        value: RAD Box QR Inventory
+      - key: STORE_MODE
+        value: airtable
+      - key: ENABLE_KITS
+        value: false
+      - key: ALLOW_NEGATIVE_STOCK
+        value: false
+      - key: AIRTABLE_PAT
+        sync: false
+      - key: AIRTABLE_BASE_ID
+        sync: false

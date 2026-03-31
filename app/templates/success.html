@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card narrow success-card">
+  <h2>Saved</h2>
+  <p>{{ result.message }}</p>
+  <p class="subtle">Batch ID: <code>{{ result.batch_id }}</code> &nbsp; Transactions created: {{ result.transactions_created }}</p>
+
+  {% if result.touched_parts %}
+  <div class="table-wrap compact">
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Part</th>
+          <th>Current on hand</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for part in result.touched_parts %}
+        <tr>
+          <td><code>{{ part.sku }}</code></td>
+          <td>{{ part.name }}</td>
+          <td>{{ part.on_hand }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="button-row">
+    <a class="pill" href="/">Return to dashboard</a>
+    <a class="pill" href="/labels">View printable labels</a>
+  </div>
+</section>
+{% endblock %}
