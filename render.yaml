@@ -18,6 +18,18 @@ services:
         value: false
       - key: ALLOW_NEGATIVE_STOCK
         value: false
+      - key: AIRTABLE_PARTS_TABLE
+        value: BOM Line Items
+      - key: AIRTABLE_SYNC_MODE
+        value: direct_count
+      - key: AIRTABLE_FILTER_TO_CATALOG
+        value: true
+      - key: AIRTABLE_LOG_TRANSACTIONS
+        value: false
+      - key: FIELD_PART_NAME
+        value: Line Item Name
+      - key: FIELD_PART_ON_HAND
+        value: Quantity In Stock
       - key: AIRTABLE_PAT
         sync: false
       - key: AIRTABLE_BASE_ID

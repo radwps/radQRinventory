@@ -1,156 +1,107 @@
 # RAD Box QR Inventory Prototype
 
-This is a lightweight mobile-friendly web app for RAD Box inventory.
+This build is configured for the existing Airtable base **RAD Operations Tracker (LIVE)** using the **BOM Line Items** table structure you exported to CSV.
 
-## What is included in this version
+## What this build now does
 
-- One QR code per part container.
-- The scan page lets the operator choose **Add inventory** or **Subtract inventory**.
-- A running transaction log.
-- Mobile-friendly pages for phone scanning.
-- A Render-ready deployment config for a free public URL.
-- A Dockerfile for other container-based hosts.
-- A revised demo catalog with these 12 starting parts, all at zero count:
-  - MP3 Player
-  - 8 GB SD Card
-  - HiLetgo PAM8610 Mini Stereo AMP
-  - Potentiometer Control Knobs for Amp
-  - 12V to 5V Converter USB-C
-  - 1x12 Position Power Distribution Board
-  - DC Barrel Glands
-  - CNLINKO USB-C Gland
-  - CNLINKO LP12 4-Pin Circular Connector with 1 Meter Cable
-  - Audio Gland
-  - 6" Audio Jump Cable Amp & Out
-  - 12V 5A DC Power Pigtail Cord Male Plug Connectors
+- Uses **BOM Line Items** as the Airtable inventory source table.
+- Reads the part name from **Line Item Name**.
+- Reads and writes inventory counts directly to **Quantity In Stock**.
+- Filters Airtable down to the 12 QR-coded RAD parts only.
+- Uses one QR code per part container.
+- Keeps the mock/demo mode intact for offline testing.
 
-Kit-level whole-box QR codes are disabled by default in this build.
+## BOM field mapping used by this build
 
-## Files added for deployment
+- Table: `BOM Line Items`
+- Part name field: `Line Item Name`
+- Count field: `Quantity In Stock`
+- QR/scan identifiers: the app uses stable internal SKUs such as `RAD-MP3-PLAYER`, mapped to the matching BOM line item.
 
-- `render.yaml` for Render
-- `Dockerfile` and `.dockerignore` for other container-based hosts
-- `airtable_import/parts_import.csv` to import the 12 parts into Airtable
+## Important behavior change from the earlier Airtable version
 
-## Recommended production architecture
+Earlier versions expected a separate Airtable **Parts** table plus a **Transactions** table and let Airtable formulas compute on-hand counts.
 
-Use Airtable as the system of record and keep the web app stateless.
-The app should write transaction records, and Airtable should calculate current stock.
-That avoids data loss on free hosts that do not provide persistent local storage.
+This version is different:
 
-### Airtable tables
+- it updates **Quantity In Stock** on the matching **BOM Line Items** record directly
+- transaction logging is **optional** and off by default
 
-#### 1) Parts
-Suggested fields:
+That makes the app work with the CSV structure you provided, even if you do not yet have a separate inventory transactions table in Airtable.
 
-- `SKU` (single line text, unique)
-- `Part Name` (single line text)
-- `Container Label` (single line text)
-- `Starting Qty` (number)
-- `Reorder Level` (number)
-- `Transactions` (linked records to Transactions)
-- `Qty Delta Rollup` (rollup of `Transactions -> Delta`, with `SUM(values)`)
-- `On Hand` (formula: `VALUE({Starting Qty}) + VALUE({Qty Delta Rollup})`)
+## The 12 BOM items this build looks for
 
-#### 2) Transactions
-Suggested fields:
+The app maps these display names to the corresponding exported BOM line items, including the name variants found in your CSV:
 
-- `Part` (linked record to Parts)
-- `SKU` (single line text)
-- `Action` (single select or text)
-- `Quantity` (number)
-- `Delta` (number; positive for add, negative for subtract)
-- `Batch ID` (single line text)
-- `Operator` (single line text)
-- `Note` (long text)
-- `Source` (single line text)
-- `Scanned At` (date/time)
+- MP3 Player
+- 8 GB SD Card → matches `8 GB SD Card (for MP3)`
+- HiLetgo PAM8610 Mini Stereo AMP
+- Potentiometer Control Knobs for Amp → matches `30 PCS 6mm Potentiometer Control Knobs for Amp`
+- 12V to 5V Converter USB-C → matches `12v to 5v Converter USB-C`
+- 1x12 Position Power Distribution Board → matches `1X 12 Position Power Distribution Board`
+- DC Barrel Glands
+- CNLINKO USB-C Gland
+- CNLINKO LP12 4-Pin Circular Connector with 1 Meter Cable
+- Audio Gland
+- 6" Audio Jump Cable Amp & Out → matches `6" audio jump cable Amp & Out`
+- 12V 5A DC Power Pigtail Cord Male Plug Connectors → matches `20-Pack 12V 5A DC Power Pigtail Cord Male Plug Connectors, 5.5mm x 2.1mm`
 
-## Local test run
-
-From the project folder:
+## Local run
 
 ```bash
 python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
-Then open:
+## Local Airtable mode
 
-```text
-http://localhost:8000
+Copy `.env.example` to `.env`, then set at minimum:
+
+```env
+STORE_MODE=airtable
+AIRTABLE_PAT=pat_xxx
+AIRTABLE_BASE_ID=app_xxx
 ```
 
-If you update the seed list and want the mock database to match it again, either click **Reset demo data** on the dashboard or delete `demo_data/radbox_inventory.db` and restart.
+In this build, the rest of the Airtable mapping defaults already point at the BOM structure from your CSV.
 
-## Switching to Airtable mode locally
+## Optional transaction log table
 
-1. Copy `.env.example` to `.env`.
-2. Set:
-   - `STORE_MODE=airtable`
-   - `AIRTABLE_PAT=...`
-   - `AIRTABLE_BASE_ID=...`
-3. Import `airtable_import/parts_import.csv` into your Airtable **Parts** table if you want the 12 default items preloaded.
-4. Start the app.
+If you later want a log in Airtable too, create a table such as `Inventory Transactions` and keep or adjust the default field names in `.env.example`.
 
-Example:
+Recommended fields:
 
-```bash
-python -m uvicorn app.main:app --reload
+- `Part` (linked record to BOM Line Items, optional)
+- `SKU`
+- `Action`
+- `Quantity`
+- `Delta`
+- `Batch ID`
+- `Operator`
+- `Note`
+- `Source`
+- `Scanned At`
+
+Then enable it with:
+
+```env
+AIRTABLE_LOG_TRANSACTIONS=true
+AIRTABLE_TRANSACTIONS_TABLE=Inventory Transactions
 ```
-
-This project now loads a local `.env` file automatically if it exists.
 
 ## Render deployment
 
-This repo includes `render.yaml`, so Render can create the service from the repository.
+This repo includes `render.yaml` and is preconfigured for Airtable mode.
 
-### Fastest path
+Add only:
 
-1. Put this project in a GitHub repository.
-2. In Render, choose **New +** then **Blueprint**.
-3. Select the repository.
-4. During setup, enter values for:
-   - `AIRTABLE_PAT`
-   - `AIRTABLE_BASE_ID`
-5. Deploy.
+- `AIRTABLE_PAT`
+- `AIRTABLE_BASE_ID`
 
-The included `render.yaml` uses:
-
-- a **free** web service
-- `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers`
-- `/health` as the health check path
-- `STORE_MODE=airtable`
-- `ENABLE_KITS=false`
-
-Once deployed, Render gives the app a public URL. The labels page will use that host automatically when `PUBLIC_BASE_URL` is not manually set.
-
-## Other hosting options
-
-Because a `Dockerfile` is included, the app can also be deployed on container-friendly hosts such as Koyeb or any VPS/container platform. If you deploy somewhere other than Render, make sure the host sets a stable public URL and that your environment variables are configured.
-
-## QR workflow
-
-Each printed part QR stores a URL such as:
-
-```text
-https://your-app.example.com/scan/part/RAD-MP3-PLAYER
-https://your-app.example.com/scan/part/RAD-PAM8610-AMP
-```
-
-The phone opens a simple page that shows the part, current on-hand quantity, quantity field, operator initials, and note field. The user then taps either **Add inventory** or **Subtract inventory**.
+Render will then deploy the BOM-mapped version automatically.
 
 ## Notes
 
-- The demo data now includes only the 12 items listed above.
-- In Airtable mode, the app expects the `On Hand` value to be calculated by Airtable formulas and rollups.
-- For production, use Airtable mode instead of hosted mock mode.
-- Kit support can be re-enabled later by setting `ENABLE_KITS=true` and filling out kit tables.
-
-## Tests
-
-Run:
-
-```bash
-pytest
-```
+- Blank `Quantity In Stock` values are treated as `0`.
+- Whole-box kit labels are still disabled by default.
+- The file `airtable_import/bom_line_items_mapping.csv` shows the exact app-to-BOM name mapping used in this build.
