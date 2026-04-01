@@ -53,10 +53,18 @@ def test_legacy_part_route_still_works() -> None:
     assert after == before
 
 
-def test_labels_page_uses_single_qr_per_part() -> None:
+def test_labels_page_uses_single_qr_per_part_and_90x30_note() -> None:
     response = client.get('/labels?base_url=https://example.com')
     assert response.status_code == 200
+    assert 'Printable QR labels (90 mm x 30 mm)' in response.text
     assert 'Scan to add or subtract' in response.text
     assert 'Whole-box subtract labels' not in response.text
     assert '<code>https://example.com</code>' in response.text
-    assert response.text.count('Scan to add or subtract') >= 12
+    assert response.text.count('Scan to add or subtract') >= 43
+
+
+def test_mock_seed_contains_all_pdf_line_items() -> None:
+    parts = STORE.list_parts()
+    assert len(parts) == 43
+    assert all(part.on_hand == 0 for part in parts)
+    assert any(part.sku == 'RAD-SIM-DATA-PLAN' for part in parts)

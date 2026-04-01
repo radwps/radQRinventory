@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="card">
-  <h2>Printable QR labels</h2>
+<section class="card labels-info">
+  <h2>Printable QR labels (90 mm x 30 mm)</h2>
   <p>
-    Print this page on a laser printer and tape one label to each container.
+    Each label prints at <strong>90 mm wide</strong> by <strong>30 mm tall</strong>.
     Current base URL: <code>{{ public_base }}</code>
   </p>
   {% if 'localhost' in public_base or '127.0.0.1' in public_base %}
@@ -12,22 +12,19 @@
   <p class="subtle">These QR codes should be reachable from any phone that can access <code>{{ public_base }}</code>.</p>
   {% endif %}
   <p class="subtle">Override the QR destination with <code>?base_url=https://your-app.example.com</code> whenever you need to regenerate labels for a different host.</p>
+  <div class="button-row">
+    <button type="button" class="secondary" onclick="window.print()">Print labels</button>
+  </div>
 </section>
 
-<section class="labels-grid single-qr-grid">
+<section class="label-sheet label-sheet-90x30">
   {% for label in part_labels %}
-  <article class="label-card">
-    <h3>{{ label.part.name }}</h3>
-    <p>
-      <code>{{ label.part.sku }}</code>
-      {% if label.part.container_label %}
-      &middot; {{ label.part.container_label }}
-      {% endif %}
-    </p>
-    <div class="single-qr-block">
-      <img src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
-      <strong>Scan to add or subtract</strong>
-      <p class="subtle label-help">Choose the action on your phone after scanning.</p>
+  <article class="label-card label-card-90x30">
+    <img class="label-qr-image" src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
+    <div class="label-copy">
+      <h3>{{ label.part.name }}</h3>
+      <p class="label-sku"><code>{{ label.part.sku }}</code></p>
+      <p class="subtle label-help">Scan to add or subtract</p>
     </div>
   </article>
   {% endfor %}
