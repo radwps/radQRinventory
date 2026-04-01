@@ -53,14 +53,29 @@ def test_legacy_part_route_still_works() -> None:
     assert after == before
 
 
-def test_labels_page_uses_single_qr_per_part_and_90x30_note() -> None:
+def test_labels_page_uses_letter_layout_and_30x90_labels() -> None:
     response = client.get('/labels?base_url=https://example.com')
     assert response.status_code == 200
-    assert 'Printable QR labels (90 mm x 30 mm)' in response.text
-    assert 'Scan to add or subtract' in response.text
+    assert 'Printable QR labels (3 cm x 9 cm / 30 mm x 90 mm)' in response.text
+    assert 'US Letter paper (8.5 x 11 in)' in response.text
     assert 'Whole-box subtract labels' not in response.text
     assert '<code>https://example.com</code>' in response.text
-    assert response.text.count('Scan to add or subtract') >= 43
+    assert response.text.count('label-card label-card-90x30') == 43
+    assert response.text.count('class="label-page letter-page"') == 3
+
+
+def test_parts_follow_bom_csv_order_on_dashboard() -> None:
+    parts = STORE.list_parts()
+    names = [part.name for part in parts]
+    assert names[:6] == [
+        'IP67 Waterproof Junction Box (check if 7.1”!)',
+        'CWT5015 4G RTU Remote Terminal Unit CWT5015',
+        'MP3 Player',
+        '8 GB SD Card (for MP3)',
+        'HiLetgo PAM8610 Mini Stereo AMP',
+        '100pcs California JOS 2.54mm Black Jumper Caps',
+    ]
+    assert names[-1] == 'SIM Card / Data Plan'
 
 
 def test_mock_seed_contains_all_pdf_line_items() -> None:

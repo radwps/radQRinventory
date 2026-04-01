@@ -103,3 +103,14 @@ Render will then deploy the BOM-mapped version automatically.
 
 - Blank `Quantity In Stock` values are treated as `0`.
 - Whole-box kit labels are still disabled by default.
+
+
+## Label size and print layout
+
+The `/labels` page is laid out for **US Letter paper (8.5 x 11 in)** with each printed label sized to **30 mm tall x 90 mm wide** (3 cm x 9 cm). For best results, print with:
+
+- **Scale:** 100% or Actual Size
+- **Paper:** US Letter
+- **Headers/footers:** Off
+
+The printable labels are arranged in the same top-to-bottom order as the `BOM Line Items` CSV/PDF export.

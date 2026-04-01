@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.part_catalog import TARGET_PARTS, find_catalog_entry
+from app.part_catalog import TARGET_PARTS, catalog_sort_key, find_catalog_entry
 
 
 def test_catalog_matches_bom_variants_and_preserves_existing_skus() -> None:
@@ -22,3 +22,15 @@ def test_catalog_matches_bom_variants_and_preserves_existing_skus() -> None:
     assert find_catalog_entry('20-Pack 12V 5A DC Power Pigtail Cord Male Plug Connectors, 5.5mm x 2.1mm').sku == 'RAD-12V-5A-PIGTAIL-M'
     assert find_catalog_entry('12V 5A DC Power Pigtail Cord Male Plug Connectors').sku == 'RAD-12V-5A-PIGTAIL-M'
     assert find_catalog_entry('SIM Card / Data Plan').sku == 'RAD-SIM-DATA-PLAN'
+
+
+def test_catalog_sort_key_preserves_csv_pdf_order() -> None:
+    ordered = sorted(TARGET_PARTS, key=lambda entry: catalog_sort_key(entry.sku, entry.display_name))
+    assert [entry.display_name for entry in ordered[:5]] == [
+        'IP67 Waterproof Junction Box (check if 7.1”!)',
+        'CWT5015 4G RTU Remote Terminal Unit CWT5015',
+        'MP3 Player',
+        '8 GB SD Card (for MP3)',
+        'HiLetgo PAM8610 Mini Stereo AMP',
+    ]
+    assert ordered[-1].display_name == 'SIM Card / Data Plan'

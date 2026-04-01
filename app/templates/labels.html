@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="card labels-info">
-  <h2>Printable QR labels (90 mm x 30 mm)</h2>
+  <h2>Printable QR labels (3 cm x 9 cm / 30 mm x 90 mm)</h2>
   <p>
-    Each label prints at <strong>90 mm wide</strong> by <strong>30 mm tall</strong>.
+    Each label prints at <strong>30 mm tall</strong> by <strong>90 mm wide</strong> on
+    <strong>US Letter paper (8.5 x 11 in)</strong>.
     Current base URL: <code>{{ public_base }}</code>
   </p>
+  <p class="subtle">For correct physical sizing, print with <strong>Scale = 100%</strong> or <strong>Actual size</strong>, paper size set to <strong>US Letter</strong>, and browser headers/footers turned off.</p>
   {% if 'localhost' in public_base or '127.0.0.1' in public_base %}
   <p class="warning">These QR codes point to <code>{{ public_base }}</code>. That works only on the computer running the app. For phone scanning, regenerate labels using your computer's LAN IP or a public URL.</p>
   {% else %}
@@ -17,14 +19,19 @@
   </div>
 </section>
 
-<section class="label-sheet label-sheet-90x30">
-  {% for label in part_labels %}
-  <article class="label-card label-card-90x30">
-    <img class="label-qr-image" src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
-    <div class="label-copy">
-      <h3>{{ label.part.name }}</h3>
-      <p class="label-sku"><code>{{ label.part.sku }}</code></p>
-      <p class="subtle label-help">Scan to add or subtract</p>
+<section class="label-pages">
+  {% for page in part_label_pages %}
+  <article class="label-page letter-page" aria-label="Label page {{ loop.index }}">
+    <div class="label-sheet label-sheet-90x30">
+      {% for label in page %}
+      <article class="label-card label-card-90x30">
+        <img class="label-qr-image" src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
+        <div class="label-copy">
+          <h3>{{ label.part.name }}</h3>
+          <p class="label-sku"><code>{{ label.part.sku }}</code></p>
+        </div>
+      </article>
+      {% endfor %}
     </div>
   </article>
   {% endfor %}

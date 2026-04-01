@@ -177,23 +177,45 @@ input, textarea {
 .label-help {
   margin: 0;
 }
+.label-pages {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+.letter-page {
+  width: 215.9mm;
+  min-height: 279.4mm;
+  margin: 0 auto;
+  padding: 10.95mm 15.95mm;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
 .label-sheet-90x30 {
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 90mm);
+  grid-auto-rows: 30mm;
+  gap: 2.5mm 4mm;
+  align-content: start;
 }
 .label-card-90x30 {
-  width: min(100%, 90mm);
+  width: 90mm;
+  height: 30mm;
   min-height: 30mm;
+  padding: 2.4mm 2.8mm;
   display: grid;
-  grid-template-columns: 22mm 1fr;
-  gap: 3mm;
+  grid-template-columns: 18mm 1fr;
+  gap: 2.6mm;
   align-items: center;
-  padding: 3mm;
   text-align: left;
-  border-radius: 3mm;
+  border-radius: 2mm;
+  overflow: hidden;
 }
 .label-card-90x30 .label-qr-image {
-  width: 22mm;
-  height: 22mm;
+  width: 18mm;
+  height: 18mm;
   aspect-ratio: 1 / 1;
   object-fit: contain;
   image-rendering: pixelated;
@@ -201,30 +223,28 @@ input, textarea {
 .label-copy {
   min-width: 0;
   display: grid;
-  gap: 1.1mm;
+  gap: 0.75mm;
   align-content: center;
 }
 .label-card-90x30 h3 {
   margin: 0;
-  font-size: 9pt;
-  line-height: 1.1;
+  font-size: 6.8pt;
+  line-height: 1.08;
   overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .label-sku {
   margin: 0;
+  line-height: 1;
 }
 .label-card-90x30 code {
   display: inline;
   background: transparent;
   padding: 0;
   border-radius: 0;
-  font-size: 6.4pt;
-  line-height: 1.1;
+  font-size: 5.2pt;
+  line-height: 1.05;
   overflow-wrap: anywhere;
-}
-.label-card-90x30 .label-help {
-  font-size: 7pt;
-  line-height: 1.15;
 }
 .qr-pair {
   display: grid;
@@ -268,12 +288,10 @@ input, textarea {
   .scan-choice-buttons {
     grid-template-columns: 1fr;
   }
-  .label-card-90x30 {
-    width: 100%;
-  }
 }
 @page {
-  margin: 8mm;
+  size: Letter portrait;
+  margin: 0;
 }
 @media print {
   .site-header, .button-row, form, .hero button, .labels-info {
@@ -288,17 +306,35 @@ input, textarea {
     width: auto;
     margin: 0;
   }
-  .card, .label-card {
+  .card, .label-card, .letter-page {
     box-shadow: none;
-    break-inside: avoid;
   }
-  .label-sheet {
-    gap: 3mm;
+  .label-pages {
+    display: block;
+    margin: 0;
+    overflow: visible;
+  }
+  .letter-page {
+    width: 215.9mm;
+    height: 279.4mm;
+    min-height: 279.4mm;
+    margin: 0;
+    padding: 10.95mm 15.95mm;
+    border: none;
+    border-radius: 0;
+    page-break-after: always;
+    break-after: page;
+  }
+  .letter-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .label-sheet-90x30 {
+    margin: 0;
   }
   .label-card-90x30 {
     width: 90mm;
-    min-height: 30mm;
     height: 30mm;
-    border-radius: 2mm;
+    min-height: 30mm;
   }
 }

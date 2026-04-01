@@ -25,6 +25,10 @@ templates = Jinja2Templates(directory=str(BASE_DIR / 'templates'))
 VALID_ACTIONS = {'add', 'subtract'}
 
 
+def chunked(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
+    return [items[index : index + size] for index in range(0, len(items), size)]
+
+
 def _build_store():
     if settings.store_mode == 'airtable':
         return build_airtable_store()
@@ -272,6 +276,7 @@ def labels(request: Request, base_url: str | None = None):
             request,
             public_base=public_base,
             part_labels=part_labels,
+            part_label_pages=chunked(part_labels, 16),
             kit_labels=kit_labels,
             title='Printable labels',
         ),

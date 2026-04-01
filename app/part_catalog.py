@@ -79,4 +79,11 @@ def find_catalog_entry(raw_name: str | None) -> CatalogEntry | None:
     return _CATALOG_LOOKUP.get(normalize_part_name(raw_name))
 
 
+CATALOG_ORDER = {entry.sku: index for index, entry in enumerate(TARGET_PARTS)}
+
+
+def catalog_sort_key(sku: str, fallback_name: str = '') -> tuple[int, str]:
+    return (CATALOG_ORDER.get(sku, len(CATALOG_ORDER)), (fallback_name or '').lower())
+
+
 CATALOG_BY_SKU = {entry.sku: entry for entry in TARGET_PARTS}
