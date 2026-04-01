@@ -148,16 +148,19 @@ input, textarea {
   gap: 1rem;
   margin-bottom: 1rem;
 }
-.single-qr-grid {
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+.label-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1rem;
 }
 .label-card {
   background: white;
   border: 1px dashed #98a2b3;
   border-radius: 12px;
   padding: 0.9rem;
-  text-align: center;
   overflow: hidden;
+  break-inside: avoid;
 }
 .label-card img {
   width: min(190px, 100%);
@@ -173,6 +176,55 @@ input, textarea {
 }
 .label-help {
   margin: 0;
+}
+.label-sheet-90x30 {
+  gap: 10px;
+}
+.label-card-90x30 {
+  width: min(100%, 90mm);
+  min-height: 30mm;
+  display: grid;
+  grid-template-columns: 22mm 1fr;
+  gap: 3mm;
+  align-items: center;
+  padding: 3mm;
+  text-align: left;
+  border-radius: 3mm;
+}
+.label-card-90x30 .label-qr-image {
+  width: 22mm;
+  height: 22mm;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.label-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1.1mm;
+  align-content: center;
+}
+.label-card-90x30 h3 {
+  margin: 0;
+  font-size: 9pt;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.label-sku {
+  margin: 0;
+}
+.label-card-90x30 code {
+  display: inline;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 6.4pt;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.label-card-90x30 .label-help {
+  font-size: 7pt;
+  line-height: 1.15;
 }
 .qr-pair {
   display: grid;
@@ -216,16 +268,37 @@ input, textarea {
   .scan-choice-buttons {
     grid-template-columns: 1fr;
   }
+  .label-card-90x30 {
+    width: 100%;
+  }
+}
+@page {
+  margin: 8mm;
 }
 @media print {
-  .site-header, .button-row, form, .hero button {
+  .site-header, .button-row, form, .hero button, .labels-info {
     display: none !important;
   }
   body {
     background: white;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .wrap {
+    width: auto;
+    margin: 0;
   }
   .card, .label-card {
     box-shadow: none;
     break-inside: avoid;
+  }
+  .label-sheet {
+    gap: 3mm;
+  }
+  .label-card-90x30 {
+    width: 90mm;
+    min-height: 30mm;
+    height: 30mm;
+    border-radius: 2mm;
   }
 }

@@ -1,6 +1,20 @@
 {
   "parts": [
     {
+      "sku": "RAD-IP67-JBOX",
+      "name": "IP67 Waterproof Junction Box (check if 7.1”!)",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-CWT5015-RTU",
+      "name": "CWT5015 4G RTU Remote Terminal Unit CWT5015",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
       "sku": "RAD-MP3-PLAYER",
       "name": "MP3 Player",
       "container_label": "",
@@ -9,7 +23,7 @@
     },
     {
       "sku": "RAD-SD-8GB",
-      "name": "8 GB SD Card",
+      "name": "8 GB SD Card (for MP3)",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
@@ -22,22 +36,36 @@
       "reorder_level": 0
     },
     {
+      "sku": "RAD-JUMPER-CAPS-254",
+      "name": "100pcs California JOS 2.54mm Black Jumper Caps",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-AMP-HOUSING-3D",
+      "name": "3d Housing for Amp",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
       "sku": "RAD-AMP-KNOBS",
-      "name": "Potentiometer Control Knobs for Amp",
+      "name": "30 PCS 6mm Potentiometer Control Knobs for Amp",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
     },
     {
       "sku": "RAD-12V-5V-USBC",
-      "name": "12V to 5V Converter USB-C",
+      "name": "12v to 5v Converter USB-C",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
     },
     {
       "sku": "RAD-PWR-DIST-1X12",
-      "name": "1x12 Position Power Distribution Board",
+      "name": "1X 12 Position Power Distribution Board",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
@@ -71,15 +99,204 @@
       "reorder_level": 0
     },
     {
+      "sku": "RAD-STANDOFFS-MP3-AMP",
+      "name": "Standoffs for MP3 Player, Amp, Power Distribution (50 pcs)",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SCREWS-ST-19MM",
+      "name": "1\" Self Tapping Screws (250 pcs) 19mm",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SCREWS-ST-12MM",
+      "name": "1\" Self Tapping Screws (250 pcs) 12mm",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-M3X6-SS",
+      "name": "M3 x 6 mm 304 Stainless Steel Screws",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-M35X16-HEX",
+      "name": "100 Pcs M3.5x16mm Stainless Steel Hex",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-WIRE-CONN-1IN3OUT",
+      "name": "10Pcs Mini Electrical Wire Connectors 1in 3 out",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-WIRE-BUTT-2216",
+      "name": "22 - 16 awg wire butt connectors – MP3",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-HEATSHRINK-433X4",
+      "name": "Heat Shrink Tube Wire (433mhz x4)",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
       "sku": "RAD-AUDIO-JUMP-6IN",
-      "name": "6\" Audio Jump Cable Amp & Out",
+      "name": "6\" audio jump cable Amp & Out",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
     },
     {
       "sku": "RAD-12V-5A-PIGTAIL-M",
-      "name": "12V 5A DC Power Pigtail Cord Male Plug Connectors",
+      "name": "20-Pack 12V 5A DC Power Pigtail Cord Male Plug Connectors, 5.5mm x 2.1mm",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-FERRULE-AWG20-075",
+      "name": "1000PCS Wire Ferrule Connectors AWG20 0.75mm²",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-AWG22-05",
+      "name": "1000 PCS AWG 22/0.5mm²",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-WIRE-18AWG-SPOOL",
+      "name": "18 AWG Stranded Wire Spool",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-OUTDOOR-SPEAKER",
+      "name": "Outdoor Speaker",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-35MM-SPKR-PIGTAIL",
+      "name": "3.5mm 1/8\" to Speaker Wire, 2-Pack 10FT 3.5mm TS Mono Male Plug to Bare Wire Pigtail",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-LED-STRIP-33FT",
+      "name": "LED Strip(33Ft Smart Globe String Lights, 50 Dimmable RGB)",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-USBF-USBCF-ADAPT",
+      "name": "10 USB Female to USB C Female Adapter",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-WATERPROOF-GLAND",
+      "name": "Waterproof Cable Gland",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SPARKAWAY-PLATE",
+      "name": "Spark Away Voltage Plate w/ Shipping",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SPARKAWAY-HOUSING",
+      "name": "Spark Away Housing (light fixture)",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SPARKAWAY-STAKE",
+      "name": "Metal Stake for Spark-away",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SPARKAWAY-POLE",
+      "name": "Spark Away Pole Extension",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SPARKAWAY-ADAPTER",
+      "name": "Pipe Adapter for Spark Away",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-DC-CABLE-5M",
+      "name": "5m DC power cable",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SOLAR-WILDGAME-D20",
+      "name": "Wildgame D20-18 20w Solar w/ Battery & 1m Cable, mount, shipping to US",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SCENT-DISPENSER",
+      "name": "Scent Dispenser",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SCENT-CABLES-ADAPTER",
+      "name": "Scent Dispenser Cables & External Power adaptor",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SHIPPING-CUSTOMS",
+      "name": "Est. Shipping & Customs",
+      "container_label": "",
+      "starting_qty": 0,
+      "reorder_level": 0
+    },
+    {
+      "sku": "RAD-SIM-DATA-PLAN",
+      "name": "SIM Card / Data Plan",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0

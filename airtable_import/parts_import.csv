@@ -1,13 +1,44 @@
 SKU,Part Name,Container Label,Starting Qty,Reorder Level
+RAD-IP67-JBOX,IP67 Waterproof Junction Box (check if 7.1”!),,0,0
+RAD-CWT5015-RTU,CWT5015 4G RTU Remote Terminal Unit CWT5015,,0,0
 RAD-MP3-PLAYER,MP3 Player,,0,0
-RAD-SD-8GB,8 GB SD Card,,0,0
+RAD-SD-8GB,8 GB SD Card (for MP3),,0,0
 RAD-PAM8610-AMP,HiLetgo PAM8610 Mini Stereo AMP,,0,0
-RAD-AMP-KNOBS,Potentiometer Control Knobs for Amp,,0,0
-RAD-12V-5V-USBC,12V to 5V Converter USB-C,,0,0
-RAD-PWR-DIST-1X12,1x12 Position Power Distribution Board,,0,0
+RAD-JUMPER-CAPS-254,100pcs California JOS 2.54mm Black Jumper Caps,,0,0
+RAD-AMP-HOUSING-3D,3d Housing for Amp,,0,0
+RAD-AMP-KNOBS,30 PCS 6mm Potentiometer Control Knobs for Amp,,0,0
+RAD-12V-5V-USBC,12v to 5v Converter USB-C,,0,0
+RAD-PWR-DIST-1X12,1X 12 Position Power Distribution Board,,0,0
 RAD-DC-BARREL-GLAND,DC Barrel Glands,,0,0
 RAD-CNLINKO-USBC,CNLINKO USB-C Gland,,0,0
 RAD-LP12-4PIN-1M,CNLINKO LP12 4-Pin Circular Connector with 1 Meter Cable,,0,0
 RAD-AUDIO-GLAND,Audio Gland,,0,0
-RAD-AUDIO-JUMP-6IN,"6\" Audio Jump Cable Amp & Out",,0,0
-RAD-12V-5A-PIGTAIL-M,12V 5A DC Power Pigtail Cord Male Plug Connectors,,0,0
+RAD-STANDOFFS-MP3-AMP,"Standoffs for MP3 Player, Amp, Power Distribution (50 pcs)",,0,0
+RAD-SCREWS-ST-19MM,"1"" Self Tapping Screws (250 pcs) 19mm",,0,0
+RAD-SCREWS-ST-12MM,"1"" Self Tapping Screws (250 pcs) 12mm",,0,0
+RAD-M3X6-SS,M3 x 6 mm 304 Stainless Steel Screws,,0,0
+RAD-M35X16-HEX,100 Pcs M3.5x16mm Stainless Steel Hex,,0,0
+RAD-WIRE-CONN-1IN3OUT,10Pcs Mini Electrical Wire Connectors 1in 3 out,,0,0
+RAD-WIRE-BUTT-2216,22 - 16 awg wire butt connectors – MP3,,0,0
+RAD-HEATSHRINK-433X4,Heat Shrink Tube Wire (433mhz x4),,0,0
+RAD-AUDIO-JUMP-6IN,"6"" audio jump cable Amp & Out",,0,0
+RAD-12V-5A-PIGTAIL-M,"20-Pack 12V 5A DC Power Pigtail Cord Male Plug Connectors, 5.5mm x 2.1mm",,0,0
+RAD-FERRULE-AWG20-075,1000PCS Wire Ferrule Connectors AWG20 0.75mm²,,0,0
+RAD-AWG22-05,1000 PCS AWG 22/0.5mm²,,0,0
+RAD-WIRE-18AWG-SPOOL,18 AWG Stranded Wire Spool,,0,0
+RAD-OUTDOOR-SPEAKER,Outdoor Speaker,,0,0
+RAD-35MM-SPKR-PIGTAIL,"3.5mm 1/8"" to Speaker Wire, 2-Pack 10FT 3.5mm TS Mono Male Plug to Bare Wire Pigtail",,0,0
+RAD-LED-STRIP-33FT,"LED Strip(33Ft Smart Globe String Lights, 50 Dimmable RGB)",,0,0
+RAD-USBF-USBCF-ADAPT,10 USB Female to USB C Female Adapter,,0,0
+RAD-WATERPROOF-GLAND,Waterproof Cable Gland,,0,0
+RAD-SPARKAWAY-PLATE,Spark Away Voltage Plate w/ Shipping,,0,0
+RAD-SPARKAWAY-HOUSING,Spark Away Housing (light fixture),,0,0
+RAD-SPARKAWAY-STAKE,Metal Stake for Spark-away,,0,0
+RAD-SPARKAWAY-POLE,Spark Away Pole Extension,,0,0
+RAD-SPARKAWAY-ADAPTER,Pipe Adapter for Spark Away,,0,0
+RAD-DC-CABLE-5M,5m DC power cable,,0,0
+RAD-SOLAR-WILDGAME-D20,"Wildgame D20-18 20w Solar w/ Battery & 1m Cable, mount, shipping to US",,0,0
+RAD-SCENT-DISPENSER,Scent Dispenser,,0,0
+RAD-SCENT-CABLES-ADAPTER,Scent Dispenser Cables & External Power adaptor,,0,0
+RAD-SHIPPING-CUSTOMS,Est. Shipping & Customs,,0,0
+RAD-SIM-DATA-PLAN,SIM Card / Data Plan,,0,0

@@ -1,14 +1,15 @@
 # RAD Box QR Inventory Prototype
 
-This build is configured for the existing Airtable base **RAD Operations Tracker (LIVE)** using the **BOM Line Items** table structure you exported to CSV.
+This build is configured for the existing Airtable base **RAD Operations Tracker (LIVE)** using the **BOM Line Items** table structure you exported.
 
 ## What this build now does
 
 - Uses **BOM Line Items** as the Airtable inventory source table.
 - Reads the part name from **Line Item Name**.
 - Reads and writes inventory counts directly to **Quantity In Stock**.
-- Filters Airtable down to the 12 QR-coded RAD parts only.
+- Filters Airtable to the full set of **43 nonblank BOM line items** found in your export.
 - Uses one QR code per part container.
+- Prints labels at **90 mm wide x 30 mm tall**.
 - Keeps the mock/demo mode intact for offline testing.
 
 ## BOM field mapping used by this build
@@ -16,35 +17,28 @@ This build is configured for the existing Airtable base **RAD Operations Tracker
 - Table: `BOM Line Items`
 - Part name field: `Line Item Name`
 - Count field: `Quantity In Stock`
-- QR/scan identifiers: the app uses stable internal SKUs such as `RAD-MP3-PLAYER`, mapped to the matching BOM line item.
+- QR/scan identifiers: the app uses stable internal SKUs such as `RAD-MP3-PLAYER`, mapped to the matching BOM line item
 
-## Important behavior change from the earlier Airtable version
+## Existing QR codes preserved
 
-Earlier versions expected a separate Airtable **Parts** table plus a **Transactions** table and let Airtable formulas compute on-hand counts.
+For the items that were already in the app, the same SKUs were kept so previously printed QR codes still resolve to the same scan pages.
 
-This version is different:
+Examples:
 
-- it updates **Quantity In Stock** on the matching **BOM Line Items** record directly
-- transaction logging is **optional** and off by default
+- `RAD-MP3-PLAYER`
+- `RAD-SD-8GB`
+- `RAD-PAM8610-AMP`
+- `RAD-AMP-KNOBS`
+- `RAD-12V-5V-USBC`
+- `RAD-PWR-DIST-1X12`
+- `RAD-AUDIO-JUMP-6IN`
+- `RAD-12V-5A-PIGTAIL-M`
 
-That makes the app work with the CSV structure you provided, even if you do not yet have a separate inventory transactions table in Airtable.
+## Important behavior note about counts
 
-## The 12 BOM items this build looks for
-
-The app maps these display names to the corresponding exported BOM line items, including the name variants found in your CSV:
-
-- MP3 Player
-- 8 GB SD Card → matches `8 GB SD Card (for MP3)`
-- HiLetgo PAM8610 Mini Stereo AMP
-- Potentiometer Control Knobs for Amp → matches `30 PCS 6mm Potentiometer Control Knobs for Amp`
-- 12V to 5V Converter USB-C → matches `12v to 5v Converter USB-C`
-- 1x12 Position Power Distribution Board → matches `1X 12 Position Power Distribution Board`
-- DC Barrel Glands
-- CNLINKO USB-C Gland
-- CNLINKO LP12 4-Pin Circular Connector with 1 Meter Cable
-- Audio Gland
-- 6" Audio Jump Cable Amp & Out → matches `6" audio jump cable Amp & Out`
-- 12V 5A DC Power Pigtail Cord Male Plug Connectors → matches `20-Pack 12V 5A DC Power Pigtail Cord Male Plug Connectors, 5.5mm x 2.1mm`
+- In **mock/demo mode**, all seeded counts are reset to `0`.
+- In **Airtable mode**, the app shows whatever is currently stored in Airtable under `Quantity In Stock`.
+- Updating the code alone does **not** zero out live Airtable records. If you want the live base reset to zero, update the `Quantity In Stock` values in Airtable as well.
 
 ## Local run
 
@@ -63,7 +57,7 @@ AIRTABLE_PAT=pat_xxx
 AIRTABLE_BASE_ID=app_xxx
 ```
 
-In this build, the rest of the Airtable mapping defaults already point at the BOM structure from your CSV.
+In this build, the rest of the Airtable mapping defaults already point at the BOM structure.
 
 ## Optional transaction log table
 
@@ -100,8 +94,12 @@ Add only:
 
 Render will then deploy the BOM-mapped version automatically.
 
+## Files to review
+
+- `airtable_import/bom_line_items_mapping.csv` - exact SKU-to-BOM mapping used in this build
+- `airtable_import/parts_import.csv` - 43-item import file with all counts set to `0`
+
 ## Notes
 
 - Blank `Quantity In Stock` values are treated as `0`.
 - Whole-box kit labels are still disabled by default.
-- The file `airtable_import/bom_line_items_mapping.csv` shows the exact app-to-BOM name mapping used in this build.
