@@ -19,7 +19,7 @@ services:
       - key: ALLOW_NEGATIVE_STOCK
         value: false
       - key: AIRTABLE_PARTS_TABLE
-        value: BOM Line Items
+        value: Inventory
       - key: AIRTABLE_SYNC_MODE
         value: direct_count
       - key: AIRTABLE_FILTER_TO_CATALOG

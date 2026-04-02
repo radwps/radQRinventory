@@ -6,9 +6,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.part_catalog import TARGET_PARTS, catalog_sort_key, find_catalog_entry
 
 
-def test_catalog_matches_bom_variants_and_preserves_existing_skus() -> None:
+def test_catalog_matches_inventory_variants_and_preserves_existing_skus() -> None:
     assert len(TARGET_PARTS) == 43
-    assert find_catalog_entry('MP3 Player').sku == 'RAD-MP3-PLAYER'
+    assert find_catalog_entry('IP67 Waterproof Junction Box (11.8x7.9x6.3)').sku == 'RAD-IP67-JBOX'
+    assert find_catalog_entry('IP67 Waterproof Junction Box (check if 7.1”!)').sku == 'RAD-IP67-JBOX'
+    assert find_catalog_entry('4G RTU Remote Terminal Unit CWT5015').sku == 'RAD-CWT5015-RTU'
+    assert find_catalog_entry('CWT5015 4G RTU Remote Terminal Unit CWT5015').sku == 'RAD-CWT5015-RTU'
+    assert find_catalog_entry('3d Housing for Amp (Filament)').sku == 'RAD-AMP-HOUSING-3D'
+    assert find_catalog_entry('3d Housing for Amp').sku == 'RAD-AMP-HOUSING-3D'
     assert find_catalog_entry('8 GB SD Card (for MP3)').sku == 'RAD-SD-8GB'
     assert find_catalog_entry('8 GB SD Card').sku == 'RAD-SD-8GB'
     assert find_catalog_entry('30 PCS 6mm Potentiometer Control Knobs for Amp').sku == 'RAD-AMP-KNOBS'
@@ -24,11 +29,11 @@ def test_catalog_matches_bom_variants_and_preserves_existing_skus() -> None:
     assert find_catalog_entry('SIM Card / Data Plan').sku == 'RAD-SIM-DATA-PLAN'
 
 
-def test_catalog_sort_key_preserves_csv_pdf_order() -> None:
+def test_catalog_sort_key_preserves_inventory_order() -> None:
     ordered = sorted(TARGET_PARTS, key=lambda entry: catalog_sort_key(entry.sku, entry.display_name))
     assert [entry.display_name for entry in ordered[:5]] == [
-        'IP67 Waterproof Junction Box (check if 7.1”!)',
-        'CWT5015 4G RTU Remote Terminal Unit CWT5015',
+        'IP67 Waterproof Junction Box (11.8x7.9x6.3)',
+        '4G RTU Remote Terminal Unit CWT5015',
         'MP3 Player',
         '8 GB SD Card (for MP3)',
         'HiLetgo PAM8610 Mini Stereo AMP',

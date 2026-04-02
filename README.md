@@ -1,44 +1,34 @@
 # RAD Box QR Inventory Prototype
 
-This build is configured for the existing Airtable base **RAD Operations Tracker (LIVE)** using the **BOM Line Items** table structure you exported.
+This build is configured for the current Airtable base **RAD Operations Tracker (LIVE)** using the **Inventory** table you exported.
 
-## What this build now does
+## What this update fixes
 
-- Uses **BOM Line Items** as the Airtable inventory source table.
+- Uses **Inventory** as the default Airtable inventory source table.
+- Falls back automatically between **Inventory** and **BOM Line Items** so an old environment variable does not break the app.
 - Reads the part name from **Line Item Name**.
 - Reads and writes inventory counts directly to **Quantity In Stock**.
-- Filters Airtable to the full set of **43 nonblank BOM line items** found in your export.
-- Uses one QR code per part container.
-- Prints labels at **90 mm wide x 30 mm tall**.
-- Keeps the mock/demo mode intact for offline testing.
+- Filters Airtable to the **43 nonblank inventory line items** found in your export.
+- Preserves the same internal SKUs and QR routes for previously existing items.
+- Keeps printable labels at **90 mm wide x 30 mm tall** on **US Letter** paper.
 
-## BOM field mapping used by this build
+## Inventory field mapping used by this build
 
-- Table: `BOM Line Items`
+- Table: `Inventory` (with automatic fallback to `BOM Line Items`)
 - Part name field: `Line Item Name`
 - Count field: `Quantity In Stock`
-- QR/scan identifiers: the app uses stable internal SKUs such as `RAD-MP3-PLAYER`, mapped to the matching BOM line item
+- Optional extra field present in your export: `Ordered`
+- QR/scan identifiers: stable internal SKUs such as `RAD-MP3-PLAYER`, mapped to the matching inventory line item
 
-## Existing QR codes preserved
+## Name changes handled in this update
 
-For the items that were already in the app, the same SKUs were kept so previously printed QR codes still resolve to the same scan pages.
+The app now accepts the updated Airtable names for these existing SKUs:
 
-Examples:
+- `RAD-IP67-JBOX` -> `IP67 Waterproof Junction Box (11.8x7.9x6.3)`
+- `RAD-CWT5015-RTU` -> `4G RTU Remote Terminal Unit CWT5015`
+- `RAD-AMP-HOUSING-3D` -> `3d Housing for Amp (Filament)`
 
-- `RAD-MP3-PLAYER`
-- `RAD-SD-8GB`
-- `RAD-PAM8610-AMP`
-- `RAD-AMP-KNOBS`
-- `RAD-12V-5V-USBC`
-- `RAD-PWR-DIST-1X12`
-- `RAD-AUDIO-JUMP-6IN`
-- `RAD-12V-5A-PIGTAIL-M`
-
-## Important behavior note about counts
-
-- In **mock/demo mode**, all seeded counts are reset to `0`.
-- In **Airtable mode**, the app shows whatever is currently stored in Airtable under `Quantity In Stock`.
-- Updating the code alone does **not** zero out live Airtable records. If you want the live base reset to zero, update the `Quantity In Stock` values in Airtable as well.
+Older matching names are still accepted too.
 
 ## Local run
 
@@ -57,53 +47,33 @@ AIRTABLE_PAT=pat_xxx
 AIRTABLE_BASE_ID=app_xxx
 ```
 
-In this build, the rest of the Airtable mapping defaults already point at the BOM structure.
-
-## Optional transaction log table
-
-If you later want a log in Airtable too, create a table such as `Inventory Transactions` and keep or adjust the default field names in `.env.example`.
-
-Recommended fields:
-
-- `Part` (linked record to BOM Line Items, optional)
-- `SKU`
-- `Action`
-- `Quantity`
-- `Delta`
-- `Batch ID`
-- `Operator`
-- `Note`
-- `Source`
-- `Scanned At`
-
-Then enable it with:
+If you want the setting to be explicit, also set:
 
 ```env
-AIRTABLE_LOG_TRANSACTIONS=true
-AIRTABLE_TRANSACTIONS_TABLE=Inventory Transactions
+AIRTABLE_PARTS_TABLE=Inventory
 ```
 
 ## Render deployment
 
-This repo includes `render.yaml` and is preconfigured for Airtable mode.
+This repo includes `render.yaml` configured for the `Inventory` table.
 
-Add only:
+After deploying, add only:
 
 - `AIRTABLE_PAT`
 - `AIRTABLE_BASE_ID`
 
-Render will then deploy the BOM-mapped version automatically.
+If your existing Render service already has `AIRTABLE_PARTS_TABLE=BOM Line Items`, this code now auto-falls back and should still work after redeploy. You can still update the Render environment variable to `Inventory` to make the configuration clearer.
 
 ## Files to review
 
-- `airtable_import/bom_line_items_mapping.csv` - exact SKU-to-BOM mapping used in this build
+- `airtable_import/inventory_mapping.csv` - exact SKU-to-Inventory mapping used in this build
 - `airtable_import/parts_import.csv` - 43-item import file with all counts set to `0`
 
 ## Notes
 
 - Blank `Quantity In Stock` values are treated as `0`.
+- Blank line-item rows in Airtable are ignored.
 - Whole-box kit labels are still disabled by default.
-
 
 ## Label size and print layout
 
@@ -112,5 +82,3 @@ The `/labels` page is laid out for **US Letter paper (8.5 x 11 in)** with each p
 - **Scale:** 100% or Actual Size
 - **Paper:** US Letter
 - **Headers/footers:** Off
-
-The printable labels are arranged in the same top-to-bottom order as the `BOM Line Items` CSV/PDF export.

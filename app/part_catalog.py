@@ -12,13 +12,13 @@ class CatalogEntry:
 
 
 TARGET_PARTS: tuple[CatalogEntry, ...] = (
-    CatalogEntry('RAD-IP67-JBOX', 'IP67 Waterproof Junction Box (check if 7.1”!)', ('IP67 Waterproof Junction Box (check if 7.1”!)',)),
-    CatalogEntry('RAD-CWT5015-RTU', 'CWT5015 4G RTU Remote Terminal Unit CWT5015', ('CWT5015 4G RTU Remote Terminal Unit CWT5015',)),
+    CatalogEntry('RAD-IP67-JBOX', 'IP67 Waterproof Junction Box (11.8x7.9x6.3)', ('IP67 Waterproof Junction Box (11.8x7.9x6.3)', 'IP67 Waterproof Junction Box (check if 7.1”!)')),
+    CatalogEntry('RAD-CWT5015-RTU', '4G RTU Remote Terminal Unit CWT5015', ('4G RTU Remote Terminal Unit CWT5015', 'CWT5015 4G RTU Remote Terminal Unit CWT5015')),
     CatalogEntry('RAD-MP3-PLAYER', 'MP3 Player', ('MP3 Player',)),
     CatalogEntry('RAD-SD-8GB', '8 GB SD Card (for MP3)', ('8 GB SD Card (for MP3)', '8 GB SD Card')),
     CatalogEntry('RAD-PAM8610-AMP', 'HiLetgo PAM8610 Mini Stereo AMP', ('HiLetgo PAM8610 Mini Stereo AMP',)),
     CatalogEntry('RAD-JUMPER-CAPS-254', '100pcs California JOS 2.54mm Black Jumper Caps', ('100pcs California JOS 2.54mm Black Jumper Caps',)),
-    CatalogEntry('RAD-AMP-HOUSING-3D', '3d Housing for Amp', ('3d Housing for Amp',)),
+    CatalogEntry('RAD-AMP-HOUSING-3D', '3d Housing for Amp (Filament)', ('3d Housing for Amp (Filament)', '3d Housing for Amp')),
     CatalogEntry('RAD-AMP-KNOBS', '30 PCS 6mm Potentiometer Control Knobs for Amp', ('30 PCS 6mm Potentiometer Control Knobs for Amp', 'Potentiometer Control Knobs for Amp')),
     CatalogEntry('RAD-12V-5V-USBC', '12v to 5v Converter USB-C', ('12v to 5v Converter USB-C', '12V to 5V Converter USB-C')),
     CatalogEntry('RAD-PWR-DIST-1X12', '1X 12 Position Power Distribution Board', ('1X 12 Position Power Distribution Board', '1x12 Position Power Distribution Board')),

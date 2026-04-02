@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Sequence
 import requests
 
 from .config import settings
-from .part_catalog import catalog_sort_key, find_catalog_entry
+from .part_catalog import find_catalog_entry
 from .store import (
     ActionResult,
     InventoryStore,
@@ -36,6 +36,7 @@ class AirtableStore(InventoryStore):
             }
         )
         self.base_url = f'https://api.airtable.com/v0/{self.base_id}'
+        self._resolved_parts_table: str | None = None
 
     def _request(
         self,
@@ -108,7 +109,7 @@ class AirtableStore(InventoryStore):
             return None
 
         sku = catalog_entry.sku if catalog_entry else (configured_sku or raw_name or record['id'])
-        name = catalog_entry.display_name if catalog_entry else (raw_name or configured_sku or record['id'])
+        name = raw_name or (catalog_entry.display_name if catalog_entry else (configured_sku or record['id']))
 
         if settings.field_part_container:
             container_label = str(fields.get(settings.field_part_container, '')).strip()
@@ -132,18 +133,42 @@ class AirtableStore(InventoryStore):
             external_id=record['id'],
         )
 
+    def _candidate_parts_tables(self) -> list[str]:
+        candidates: list[str] = []
+        for table in [settings.airtable_parts_table, 'Inventory', 'BOM Line Items']:
+            table = (table or '').strip()
+            if table and table not in candidates:
+                candidates.append(table)
+        return candidates
+
     def _load_parts(self) -> tuple[list[Part], dict[str, str], dict[str, Part]]:
-        raw_parts = self._list_all_records(
-            settings.airtable_parts_table,
-            fields=[
-                settings.field_part_sku,
-                settings.field_part_name,
-                settings.field_part_container,
-                settings.field_part_starting_qty,
-                settings.field_part_on_hand,
-                settings.field_part_reorder_level,
-            ],
-        )
+        raw_parts: list[dict[str, Any]] | None = None
+        last_error: ValidationError | None = None
+        selected_table: str | None = None
+        fields = [
+            settings.field_part_sku,
+            settings.field_part_name,
+            settings.field_part_container,
+            settings.field_part_starting_qty,
+            settings.field_part_on_hand,
+            settings.field_part_reorder_level,
+        ]
+        for table in self._candidate_parts_tables():
+            try:
+                raw_parts = self._list_all_records(table, fields=fields)
+                selected_table = table
+                break
+            except ValidationError as exc:
+                last_error = exc
+                if self._is_missing_table_error(exc, table):
+                    continue
+                raise
+        if raw_parts is None or selected_table is None:
+            if last_error is not None:
+                raise last_error
+            raise ValidationError('Could not load the Airtable inventory table.')
+
+        self._resolved_parts_table = selected_table
         parts: list[Part] = []
         sku_to_id: dict[str, str] = {}
         sku_to_part: dict[str, Part] = {}
@@ -154,7 +179,6 @@ class AirtableStore(InventoryStore):
             parts.append(part)
             sku_to_id[part.sku] = record['id']
             sku_to_part[part.sku] = part
-        parts.sort(key=lambda part: catalog_sort_key(part.sku, part.name))
         return parts, sku_to_id, sku_to_part
 
     def list_parts(self) -> Sequence[Part]:
@@ -412,7 +436,8 @@ class AirtableStore(InventoryStore):
         if not count_field:
             raise ValidationError('No Airtable count field is configured. Set FIELD_PART_ON_HAND or FIELD_PART_STARTING_QTY.')
 
-        self._update_record(settings.airtable_parts_table, sku_to_id[sku], {count_field: new_qty})
+        target_table = self._resolved_parts_table or settings.airtable_parts_table
+        self._update_record(target_table, sku_to_id[sku], {count_field: new_qty})
         batch_id = str(uuid.uuid4())
         scanned_at = self._now()
         log_error = self._try_log_transaction(
@@ -520,7 +545,8 @@ class AirtableStore(InventoryStore):
             if not record_id:
                 raise ValidationError(f"Part '{comp.sku}' is missing from the Airtable parts table.")
             new_qty = comp.on_hand + (multiplier * comp.qty_per_kit)
-            self._update_record(settings.airtable_parts_table, record_id, {count_field: new_qty})
+            target_table = self._resolved_parts_table or settings.airtable_parts_table
+            self._update_record(target_table, record_id, {count_field: new_qty})
             touched_parts.append(
                 Part(
                     sku=comp.sku,

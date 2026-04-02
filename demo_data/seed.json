@@ -2,14 +2,14 @@
   "parts": [
     {
       "sku": "RAD-IP67-JBOX",
-      "name": "IP67 Waterproof Junction Box (check if 7.1”!)",
+      "name": "IP67 Waterproof Junction Box (11.8x7.9x6.3)",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
     },
     {
       "sku": "RAD-CWT5015-RTU",
-      "name": "CWT5015 4G RTU Remote Terminal Unit CWT5015",
+      "name": "4G RTU Remote Terminal Unit CWT5015",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0
@@ -44,7 +44,7 @@
     },
     {
       "sku": "RAD-AMP-HOUSING-3D",
-      "name": "3d Housing for Amp",
+      "name": "3d Housing for Amp (Filament)",
       "container_label": "",
       "starting_qty": 0,
       "reorder_level": 0

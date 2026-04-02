@@ -64,21 +64,22 @@ def test_labels_page_uses_letter_layout_and_30x90_labels() -> None:
     assert response.text.count('class="label-page letter-page"') == 3
 
 
-def test_parts_follow_bom_csv_order_on_dashboard() -> None:
+def test_parts_follow_inventory_order_on_dashboard() -> None:
     parts = STORE.list_parts()
     names = [part.name for part in parts]
-    assert names[:6] == [
-        'IP67 Waterproof Junction Box (check if 7.1”!)',
-        'CWT5015 4G RTU Remote Terminal Unit CWT5015',
+    assert names[:7] == [
+        'IP67 Waterproof Junction Box (11.8x7.9x6.3)',
+        '4G RTU Remote Terminal Unit CWT5015',
         'MP3 Player',
         '8 GB SD Card (for MP3)',
         'HiLetgo PAM8610 Mini Stereo AMP',
         '100pcs California JOS 2.54mm Black Jumper Caps',
+        '3d Housing for Amp (Filament)',
     ]
     assert names[-1] == 'SIM Card / Data Plan'
 
 
-def test_mock_seed_contains_all_pdf_line_items() -> None:
+def test_mock_seed_contains_all_inventory_line_items() -> None:
     parts = STORE.list_parts()
     assert len(parts) == 43
     assert all(part.on_hand == 0 for part in parts)

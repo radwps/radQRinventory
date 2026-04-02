@@ -34,7 +34,7 @@ class Settings:
 
     airtable_pat: str = os.getenv('AIRTABLE_PAT', '')
     airtable_base_id: str = os.getenv('AIRTABLE_BASE_ID', '')
-    airtable_parts_table: str = os.getenv('AIRTABLE_PARTS_TABLE', 'BOM Line Items').strip()
+    airtable_parts_table: str = os.getenv('AIRTABLE_PARTS_TABLE', 'Inventory').strip()
     airtable_transactions_table: str = os.getenv('AIRTABLE_TRANSACTIONS_TABLE', 'Inventory Transactions').strip()
     airtable_kits_table: str = os.getenv('AIRTABLE_KITS_TABLE', 'Kits').strip()
     airtable_kit_items_table: str = os.getenv('AIRTABLE_KIT_ITEMS_TABLE', 'Kit Items').strip()
