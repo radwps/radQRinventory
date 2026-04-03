@@ -9,6 +9,8 @@ This build is configured for the current Airtable base **RAD Operations Tracker 
 - Reads the part name from **Line Item Name**.
 - Reads and writes inventory counts directly to **Quantity In Stock**.
 - Filters Airtable to the **43 nonblank inventory line items** found in your export.
+- Loads the part catalog and the website display order directly from `airtable_import/inventory_mapping.csv` at runtime.
+- If you change the row order in that CSV, the dashboard and printable labels follow the new order after redeploy/restart.
 - Preserves the same internal SKUs and QR routes for previously existing items.
 - Keeps printable labels at **90 mm wide x 30 mm tall** on **US Letter** paper.
 
@@ -66,7 +68,7 @@ If your existing Render service already has `AIRTABLE_PARTS_TABLE=BOM Line Items
 
 ## Files to review
 
-- `airtable_import/inventory_mapping.csv` - exact SKU-to-Inventory mapping used in this build
+- `airtable_import/inventory_mapping.csv` - exact SKU-to-Inventory mapping used in this build **and the display order source for the website**
 - `airtable_import/parts_import.csv` - 43-item import file with all counts set to `0`
 
 ## Notes
