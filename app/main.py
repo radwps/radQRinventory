@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from .airtable_store import build_airtable_store
 from .config import settings
 from .mock_store import build_mock_store
-from .store import InventoryError
+from .store import InventoryError, NotFoundError
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -64,7 +64,10 @@ def render_part_scan(
     error: str | None = None,
     status_code: int = 200,
 ):
-    part = STORE.get_part(sku)
+    try:
+        part = STORE.get_part(sku)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     normalized_action = preferred_action if preferred_action in VALID_ACTIONS else ''
     if preferred_action and preferred_action not in VALID_ACTIONS and not error:
         error = 'Unsupported action. Use add or subtract.'

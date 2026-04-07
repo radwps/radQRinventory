@@ -22,7 +22,7 @@ DEFAULT_TARGET_PARTS: tuple[CatalogEntry, ...] = (
     CatalogEntry('RAD-PAM8610-AMP', 'HiLetgo PAM8610 Mini Stereo AMP', ('HiLetgo PAM8610 Mini Stereo AMP',)),
     CatalogEntry('RAD-JUMPER-CAPS-254', '100pcs California JOS 2.54mm Black Jumper Caps', ('100pcs California JOS 2.54mm Black Jumper Caps',)),
     CatalogEntry('RAD-AMP-HOUSING-3D', '3d Housing for Amp (Filament)', ('3d Housing for Amp (Filament)', '3d Housing for Amp')),
-    CatalogEntry('RAD-AMP-KNOBS', '30 PCS 6mm Potentiometer Control Knobs for Amp', ('30 PCS 6mm Potentiometer Control Knobs for Amp', 'Potentiometer Control Knobs for Amp')),
+    CatalogEntry('RAD-AMP-KNOBS', '30 PCS 6mm Potentiometer Control Knobs for Amp', ('30 PCS 6mm Potentiometer Control Knobs for Amp', 'Potentiometer Control Knobs for Amp', '30 PCS 6 mm Potentiometer Control Knobs for Amp', '30PCS 6mm Potentiometer Control Knobs for Amp')),
     CatalogEntry('RAD-12V-5V-USBC', '12v to 5v Converter USB-C', ('12v to 5v Converter USB-C', '12V to 5V Converter USB-C')),
     CatalogEntry('RAD-PWR-DIST-1X12', '1X 12 Position Power Distribution Board', ('1X 12 Position Power Distribution Board', '1x12 Position Power Distribution Board')),
     CatalogEntry('RAD-DC-BARREL-GLAND', 'DC Barrel Glands', ('DC Barrel Glands',)),
@@ -49,7 +49,7 @@ DEFAULT_TARGET_PARTS: tuple[CatalogEntry, ...] = (
     CatalogEntry('RAD-WATERPROOF-GLAND', 'Waterproof Cable Gland', ('Waterproof Cable Gland',)),
     CatalogEntry('RAD-SPARKAWAY-PLATE', 'Spark Away Voltage Plate w/ Shipping', ('Spark Away Voltage Plate w/ Shipping',)),
     CatalogEntry('RAD-SPARKAWAY-HOUSING', 'Spark Away Housing (light fixture)', ('Spark Away Housing (light fixture)',)),
-    CatalogEntry('RAD-SPARKAWAY-STAKE', 'Metal Stake for Spark-away', ('Metal Stake for Spark-away',)),
+    CatalogEntry('RAD-SPARKAWAY-STAKE', 'Stake for Spark-away', ('Stake for Spark-away', 'Metal Stake for Spark-away', 'Stake for Spark away')),
     CatalogEntry('RAD-SPARKAWAY-POLE', 'Spark Away Pole Extension', ('Spark Away Pole Extension',)),
     CatalogEntry('RAD-SPARKAWAY-ADAPTER', 'Pipe Adapter for Spark Away', ('Pipe Adapter for Spark Away',)),
     CatalogEntry('RAD-DC-CABLE-5M', '5m DC power cable', ('5m DC power cable',)),
@@ -72,6 +72,10 @@ def normalize_part_name(value: str | None) -> str:
     text = text.replace('²', '2')
     text = re.sub(r'\s+', ' ', text)
     return text
+
+
+def canonical_part_name(value: str | None) -> str:
+    return re.sub(r'[^a-z0-9]+', '', normalize_part_name(value))
 
 
 def _catalog_root() -> Path:
@@ -157,21 +161,32 @@ TARGET_PARTS: tuple[CatalogEntry, ...] = _load_catalog_entries_from_csv() or DEF
 
 
 _CATALOG_LOOKUP: dict[str, CatalogEntry] = {}
+_CANONICAL_CATALOG_LOOKUP: dict[str, CatalogEntry] = {}
 CATALOG_NAME_ORDER: dict[str, int] = {}
 for index, entry in enumerate(TARGET_PARTS):
-    CATALOG_NAME_ORDER[normalize_part_name(entry.display_name)] = index
-    _CATALOG_LOOKUP[normalize_part_name(entry.display_name)] = entry
+    normalized_display_name = normalize_part_name(entry.display_name)
+    canonical_display_name = canonical_part_name(entry.display_name)
+    CATALOG_NAME_ORDER[normalized_display_name] = index
+    _CATALOG_LOOKUP[normalized_display_name] = entry
+    if canonical_display_name:
+        _CANONICAL_CATALOG_LOOKUP[canonical_display_name] = entry
     for alias in entry.airtable_names:
         normalized_alias = normalize_part_name(alias)
+        canonical_alias = canonical_part_name(alias)
         CATALOG_NAME_ORDER[normalized_alias] = index
         _CATALOG_LOOKUP[normalized_alias] = entry
+        if canonical_alias:
+            _CANONICAL_CATALOG_LOOKUP[canonical_alias] = entry
 
 
 CATALOG_ORDER = {entry.sku: index for index, entry in enumerate(TARGET_PARTS)}
 
 
 def find_catalog_entry(raw_name: str | None) -> CatalogEntry | None:
-    return _CATALOG_LOOKUP.get(normalize_part_name(raw_name))
+    normalized_name = normalize_part_name(raw_name)
+    if normalized_name in _CATALOG_LOOKUP:
+        return _CATALOG_LOOKUP[normalized_name]
+    return _CANONICAL_CATALOG_LOOKUP.get(canonical_part_name(raw_name))
 
 
 def catalog_position(sku: str, fallback_name: str = '') -> int:
