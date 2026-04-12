@@ -194,6 +194,31 @@ class AirtableStore(InventoryStore):
             raise NotFoundError(f"Part '{sku}' was not found in Airtable.")
         return sku_to_part[sku]
 
+    def list_purchase_orders(self) -> list[dict[str, str]]:
+        table = 'Purchase Orders'
+        try:
+            raw_pos = self._list_all_records(table, fields=['PO Number', 'Order Date', 'Status'])
+        except ValidationError as exc:
+            if self._is_missing_table_error(exc, table):
+                return []
+            raise
+
+        purchase_orders: list[dict[str, str]] = []
+        for record in raw_pos:
+            fields = record.get('fields', {})
+            po_number = self._first_field_value(fields, 'PO Number', default='')
+            order_date = self._first_field_value(fields, 'Order Date', default='')
+            status = self._first_field_value(fields, 'Status', default='')
+            purchase_orders.append(
+                {
+                    'id': record['id'],
+                    'po_number': str(po_number or ''),
+                    'order_date': str(order_date or ''),
+                    'status': str(status or ''),
+                }
+            )
+        return purchase_orders
+
     def _is_missing_table_error(self, exc: Exception, table: str) -> bool:
         text = str(exc).lower()
         return table.lower() in text and ('table' in text and ('not found' in text or 'could not find' in text or 'unknown field name' in text))
@@ -353,16 +378,19 @@ class AirtableStore(InventoryStore):
         operator: str,
         note: str,
         scanned_at: str,
+        purchase_order_record_id: str | None = None,
     ) -> dict[str, Any]:
-        return {
+        fields: dict[str, Any] = {
             'Timestamp': scanned_at,
             'Part': [part_record_id],
             'Transaction Type': self._transaction_type_label(action),
             'Quantity Change': delta,
             'Initials': operator.strip(),
             'Notes': note.strip(),
-            'Purchase Order': 0,
         }
+        if purchase_order_record_id:
+            fields['Purchase Order'] = [purchase_order_record_id]
+        return fields
 
     def _build_transaction_fields_legacy(
         self,
@@ -414,6 +442,7 @@ class AirtableStore(InventoryStore):
         note: str,
         source: str,
         scanned_at: str,
+        purchase_order_record_id: str | None = None,
     ) -> None:
         if not self._transactions_table_configured():
             return
@@ -425,6 +454,7 @@ class AirtableStore(InventoryStore):
                 operator=operator,
                 note=note,
                 scanned_at=scanned_at,
+                purchase_order_record_id=purchase_order_record_id,
             )
         ]
         legacy_fields = self._build_transaction_fields_legacy(
@@ -469,6 +499,7 @@ class AirtableStore(InventoryStore):
         note: str,
         source: str,
         scanned_at: str,
+        purchase_order_record_id: str | None = None,
     ) -> str | None:
         if not self._transactions_table_configured():
             return None
@@ -484,6 +515,7 @@ class AirtableStore(InventoryStore):
                 note=note,
                 source=source,
                 scanned_at=scanned_at,
+                purchase_order_record_id=purchase_order_record_id,
             )
             return None
         except ValidationError as exc:
@@ -499,6 +531,7 @@ class AirtableStore(InventoryStore):
         operator: str = '',
         note: str = '',
         source: str = '',
+        purchase_order_id: str = '',
     ) -> ActionResult:
         self._validate_action(action)
         self._validate_quantity(quantity)
@@ -527,6 +560,7 @@ class AirtableStore(InventoryStore):
                 note=note,
                 source=source.strip() or f'qr:part:{sku}:{action}',
                 scanned_at=scanned_at,
+                purchase_order_record_id=purchase_order_id or None,
             )
             updated = self.get_part(sku)
             return ActionResult(
@@ -556,6 +590,7 @@ class AirtableStore(InventoryStore):
             note=note,
             source=source.strip() or f'qr:part:{sku}:{action}',
             scanned_at=scanned_at,
+            purchase_order_record_id=purchase_order_id or None,
         )
         updated = Part(
             sku=part.sku,
