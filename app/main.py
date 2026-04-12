@@ -22,7 +22,7 @@ app = FastAPI(title=settings.app_title)
 app.mount('/static', StaticFiles(directory=str(BASE_DIR / 'static')), name='static')
 templates = Jinja2Templates(directory=str(BASE_DIR / 'templates'))
 
-VALID_ACTIONS = {'add', 'subtract'}
+VALID_ACTIONS = {'add', 'subtract', 'receive', 'undo_receive'}
 
 
 def chunked(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
@@ -62,6 +62,8 @@ def render_part_scan(
     operator: str = '',
     note: str = '',
     purchase_order_id: str = '',
+    receive_mode: bool = False,
+    po_units: int = 1,
     error: str | None = None,
     status_code: int = 200,
 ):
@@ -70,8 +72,9 @@ def render_part_scan(
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     normalized_action = preferred_action if preferred_action in VALID_ACTIONS else ''
+    receive_mode = bool(receive_mode or purchase_order_id or normalized_action in {'receive', 'undo_receive'})
     if preferred_action and preferred_action not in VALID_ACTIONS and not error:
-        error = 'Unsupported action. Use add or subtract.'
+        error = 'Unsupported action.'
     purchase_orders = STORE.list_purchase_orders() if hasattr(STORE, 'list_purchase_orders') else []
     return templates.TemplateResponse(
         request,
@@ -85,6 +88,8 @@ def render_part_scan(
             note=note,
             purchase_order_id=purchase_order_id or '',
             purchase_orders=purchase_orders,
+            receive_mode=receive_mode,
+            po_units=max(1, int(po_units or 1)),
             error=error,
             title=f'Update {part.name}',
         ),
@@ -100,8 +105,11 @@ def apply_part_submission(
     operator: str,
     note: str,
     purchase_order_id: str = '',
+    receive_mode: bool = False,
+    po_units: int = 1,
 ):
     try:
+        part = STORE.get_part(sku)
         apply_kwargs = dict(
             sku=sku,
             action=action,
@@ -110,7 +118,12 @@ def apply_part_submission(
             note=note,
             source=f'qr:part:{sku}:{action}',
         )
-        if settings.store_mode == 'airtable':
+        if receive_mode:
+            actual_po_units = max(1, int(po_units or 1))
+            parts_per_po_unit = max(1, int(getattr(part, 'parts_per_po_unit', 1) or 1))
+            apply_kwargs['quantity'] = actual_po_units * parts_per_po_unit
+            apply_kwargs['po_units'] = actual_po_units
+        if settings.store_mode == 'airtable' or receive_mode:
             apply_kwargs['purchase_order_id'] = purchase_order_id or ''
         result = STORE.apply_part_action(**apply_kwargs)
         return templates.TemplateResponse(
@@ -131,6 +144,8 @@ def apply_part_submission(
             operator=operator,
             note=note,
             purchase_order_id=purchase_order_id or '',
+            receive_mode=receive_mode,
+            po_units=max(1, int(po_units or 1)),
             error=str(exc),
             status_code=400,
         )
@@ -156,8 +171,8 @@ def dashboard(request: Request):
 
 
 @app.get('/scan/part/{sku}', response_class=HTMLResponse)
-def scan_part(request: Request, sku: str, action: str = Query(default='')):
-    return render_part_scan(request, sku=sku, preferred_action=action)
+def scan_part(request: Request, sku: str, action: str = Query(default=''), receive_mode: bool = Query(default=False)):
+    return render_part_scan(request, sku=sku, preferred_action=action, receive_mode=receive_mode)
 
 
 @app.post('/scan/part/{sku}', response_class=HTMLResponse)
@@ -169,13 +184,15 @@ def scan_part_submit(
     operator: str = Form(''),
     note: str = Form(''),
     purchase_order_id: str = Form(''),
+    receive_mode: str = Form('0'),
+    po_units: int = Form(1),
 ):
-    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id)
+    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id, receive_mode in {'1', 'true', 'on', 'yes'}, po_units)
 
 
 @app.get('/scan/part/{sku}/{action}', response_class=HTMLResponse)
 def scan_part_legacy(request: Request, sku: str, action: str):
-    return render_part_scan(request, sku=sku, preferred_action=action)
+    return render_part_scan(request, sku=sku, preferred_action=action, receive_mode=action in {'receive', 'undo_receive'})
 
 
 @app.post('/scan/part/{sku}/{action}', response_class=HTMLResponse)
@@ -187,8 +204,10 @@ def scan_part_submit_legacy(
     operator: str = Form(''),
     note: str = Form(''),
     purchase_order_id: str = Form(''),
+    receive_mode: str = Form('0'),
+    po_units: int = Form(1),
 ):
-    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id)
+    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id, receive_mode in {'1', 'true', 'on', 'yes'}, po_units)
 
 
 @app.get('/scan/kit/{code}/{action}', response_class=HTMLResponse)
@@ -198,7 +217,7 @@ def scan_kit(request: Request, code: str, action: str):
     kit = STORE.get_kit(code)
     error = None
     if action not in VALID_ACTIONS:
-        error = 'Unsupported action. Use add or subtract.'
+        error = 'Unsupported action.'
     return templates.TemplateResponse(
         request,
         'scan_kit.html',

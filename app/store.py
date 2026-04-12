@@ -14,6 +14,7 @@ class Part:
     on_hand: int
     reorder_level: int = 0
     external_id: str | None = None
+    parts_per_po_unit: int = 1
 
 
 @dataclass

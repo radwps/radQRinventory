@@ -127,6 +127,10 @@ class AirtableStore(InventoryStore):
             on_hand = starting_qty
         reorder_level = self._coerce_int(fields.get(settings.field_part_reorder_level, 0)) if settings.field_part_reorder_level else 0
 
+        parts_per_po_unit = self._coerce_int(fields.get(settings.field_part_parts_per_po_unit, 1)) if settings.field_part_parts_per_po_unit else 1
+        if parts_per_po_unit <= 0:
+            parts_per_po_unit = 1
+
         return Part(
             sku=sku,
             name=name,
@@ -135,6 +139,7 @@ class AirtableStore(InventoryStore):
             on_hand=on_hand,
             reorder_level=reorder_level,
             external_id=record['id'],
+            parts_per_po_unit=parts_per_po_unit,
         )
 
     def _candidate_parts_tables(self) -> list[str]:
@@ -156,6 +161,7 @@ class AirtableStore(InventoryStore):
             settings.field_part_starting_qty,
             settings.field_part_on_hand,
             settings.field_part_reorder_level,
+            settings.field_part_parts_per_po_unit,
         ]
         for table in self._candidate_parts_tables():
             try:
@@ -246,12 +252,12 @@ class AirtableStore(InventoryStore):
 
     def _transaction_type_label(self, action: str, purchase_order_record_id: str | None = None) -> str:
         normalized = (action or '').strip().lower()
-        if normalized == 'add' and purchase_order_record_id:
+        if normalized == 'undo_receive':
+            return 'Undo Receive'
+        if normalized == 'receive':
             return 'Receive'
-        if 'subtract' in normalized:
+        if normalized == 'subtract':
             return 'Subtract'
-        if 'receive' in normalized:
-            return 'Receive'
         return 'Add'
 
     def _transaction_sort_value(self, value: str) -> datetime:
@@ -378,8 +384,8 @@ class AirtableStore(InventoryStore):
         return kits_by_code[code]
 
     def _validate_action(self, action: str) -> None:
-        if action not in {'add', 'subtract'}:
-            raise ValidationError("Action must be 'add' or 'subtract'.")
+        if action not in {'add', 'subtract', 'receive', 'undo_receive'}:
+            raise ValidationError("Action must be add, subtract, receive, or undo_receive.")
 
     def _validate_quantity(self, quantity: int) -> None:
         if quantity < 1:
@@ -395,6 +401,7 @@ class AirtableStore(InventoryStore):
         note: str,
         scanned_at: str,
         purchase_order_record_id: str | None = None,
+        po_units_change: int | None = None,
     ) -> dict[str, Any]:
         fields: dict[str, Any] = {
             'Timestamp': scanned_at,
@@ -406,6 +413,8 @@ class AirtableStore(InventoryStore):
         }
         if purchase_order_record_id:
             fields['Purchase Order'] = [purchase_order_record_id]
+        if po_units_change is not None and settings.field_txn_po_units_change:
+            fields[settings.field_txn_po_units_change] = po_units_change
         return fields
 
     def _build_transaction_fields_legacy(
@@ -459,6 +468,7 @@ class AirtableStore(InventoryStore):
         source: str,
         scanned_at: str,
         purchase_order_record_id: str | None = None,
+        po_units_change: int | None = None,
     ) -> None:
         if not self._transactions_table_configured():
             return
@@ -471,6 +481,7 @@ class AirtableStore(InventoryStore):
                 note=note,
                 scanned_at=scanned_at,
                 purchase_order_record_id=purchase_order_record_id,
+                po_units_change=po_units_change,
             )
         ]
         legacy_fields = self._build_transaction_fields_legacy(
@@ -516,6 +527,7 @@ class AirtableStore(InventoryStore):
         source: str,
         scanned_at: str,
         purchase_order_record_id: str | None = None,
+        po_units_change: int | None = None,
     ) -> str | None:
         if not self._transactions_table_configured():
             return None
@@ -532,12 +544,40 @@ class AirtableStore(InventoryStore):
                 source=source,
                 scanned_at=scanned_at,
                 purchase_order_record_id=purchase_order_record_id,
+                po_units_change=po_units_change,
             )
             return None
         except ValidationError as exc:
             if self._is_missing_table_error(exc, settings.airtable_transactions_table):
                 return f"transaction table '{settings.airtable_transactions_table}' is not configured"
             return str(exc)
+
+    def _current_po_units_total(self, part_record_id: str, purchase_order_record_id: str) -> int:
+        if not self._transactions_table_configured() or not purchase_order_record_id:
+            return 0
+        try:
+            raw_txns = self._list_all_records(
+                settings.airtable_transactions_table,
+                fields=[
+                    settings.field_txn_part,
+                    settings.field_txn_purchase_order,
+                    settings.field_txn_po_units_change,
+                ],
+            )
+        except ValidationError as exc:
+            if self._is_missing_table_error(exc, settings.airtable_transactions_table):
+                return 0
+            raise
+
+        total = 0
+        for record in raw_txns:
+            fields = record.get('fields', {})
+            part_ids = self._linked_record_ids(fields, settings.field_txn_part, 'Part')
+            po_ids = self._linked_record_ids(fields, settings.field_txn_purchase_order, 'Purchase Order')
+            if part_record_id not in part_ids or purchase_order_record_id not in po_ids:
+                continue
+            total += self._coerce_int(self._first_field_value(fields, settings.field_txn_po_units_change, 'PO Units Change', default=0))
+        return total
 
     def apply_part_action(
         self,
@@ -548,6 +588,7 @@ class AirtableStore(InventoryStore):
         note: str = '',
         source: str = '',
         purchase_order_id: str = '',
+        po_units: int | None = None,
     ) -> ActionResult:
         self._validate_action(action)
         self._validate_quantity(quantity)
@@ -555,7 +596,25 @@ class AirtableStore(InventoryStore):
         if sku not in sku_to_id:
             raise NotFoundError(f"Part '{sku}' was not found in Airtable.")
         part = sku_to_part[sku]
-        delta = quantity if action == 'add' else -quantity
+
+        is_receive_mode = action in {'receive', 'undo_receive'}
+        if is_receive_mode and not purchase_order_id:
+            raise ValidationError('Select a Purchase Order to continue.')
+        if is_receive_mode and (po_units is None or po_units < 1):
+            raise ValidationError('PO Units must be at least 1.')
+
+        delta = quantity if action in {'add', 'receive'} else -quantity
+
+        signed_po_units_change = None
+        if is_receive_mode and po_units is not None:
+            signed_po_units_change = po_units if action == 'receive' else -po_units
+            if action == 'undo_receive':
+                current_po_total = self._current_po_units_total(sku_to_id[sku], purchase_order_id)
+                if po_units > current_po_total:
+                    raise ValidationError(
+                        f'Cannot Undo Receive {po_units} PO units for {part.name}. Only {current_po_total} PO units are currently received for that purchase order.'
+                    )
+
         new_qty = part.on_hand + delta
         if not self.allow_negative_stock and new_qty < 0:
             raise ValidationError(
@@ -577,6 +636,7 @@ class AirtableStore(InventoryStore):
                 source=source.strip() or f'qr:part:{sku}:{action}',
                 scanned_at=scanned_at,
                 purchase_order_record_id=purchase_order_id or None,
+                po_units_change=signed_po_units_change,
             )
             updated = self.get_part(sku)
             return ActionResult(
@@ -607,6 +667,7 @@ class AirtableStore(InventoryStore):
             source=source.strip() or f'qr:part:{sku}:{action}',
             scanned_at=scanned_at,
             purchase_order_record_id=purchase_order_id or None,
+            po_units_change=signed_po_units_change,
         )
         updated = Part(
             sku=part.sku,
@@ -616,6 +677,7 @@ class AirtableStore(InventoryStore):
             on_hand=new_qty,
             reorder_level=part.reorder_level,
             external_id=part.external_id,
+            parts_per_po_unit=part.parts_per_po_unit,
         )
         message = f'Updated {updated.name}: {part.on_hand} -> {updated.on_hand}.'
         if log_error:

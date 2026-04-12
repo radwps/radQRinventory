@@ -48,6 +48,7 @@ class Settings:
     field_part_starting_qty: str = os.getenv('FIELD_PART_STARTING_QTY', '').strip()
     field_part_on_hand: str = os.getenv('FIELD_PART_ON_HAND', 'Quantity In Stock').strip()
     field_part_reorder_level: str = os.getenv('FIELD_PART_REORDER_LEVEL', '').strip()
+    field_part_parts_per_po_unit: str = os.getenv('FIELD_PART_PARTS_PER_PO_UNIT', 'Parts per PO Unit').strip()
 
     field_txn_part: str = os.getenv('FIELD_TXN_PART', 'Part').strip()
     field_txn_sku: str = os.getenv('FIELD_TXN_SKU', 'SKU').strip()
@@ -59,6 +60,8 @@ class Settings:
     field_txn_note: str = os.getenv('FIELD_TXN_NOTE', 'Note').strip()
     field_txn_source: str = os.getenv('FIELD_TXN_SOURCE', 'Source').strip()
     field_txn_scanned_at: str = os.getenv('FIELD_TXN_SCANNED_AT', 'Scanned At').strip()
+    field_txn_purchase_order: str = os.getenv('FIELD_TXN_PURCHASE_ORDER', 'Purchase Order').strip()
+    field_txn_po_units_change: str = os.getenv('FIELD_TXN_PO_UNITS_CHANGE', 'PO Units Change').strip()
 
     field_kit_code: str = os.getenv('FIELD_KIT_CODE', 'Kit Code').strip()
     field_kit_name: str = os.getenv('FIELD_KIT_NAME', 'Kit Name').strip()

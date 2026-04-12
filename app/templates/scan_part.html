@@ -10,44 +10,152 @@
     {% endif %}
     &nbsp; Current on hand: <strong>{{ part.on_hand }}</strong>
   </p>
-  <p class="subtle">Choose whether this scan should add to inventory or subtract from inventory, then submit the quantity.</p>
+  <p class="subtle">Use Standard mode for normal inventory changes. Turn on Receiving from Purchase Order when items are being received against a PO.</p>
 
   {% if error %}
   <div class="alert error">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="stack">
-    <label>
-      Quantity
-      <input type="number" name="quantity" min="1" value="{{ quantity }}" required>
-    </label>
+  <style>
+    .mode-toggle-row { display:flex; align-items:center; gap:0.75rem; margin:0.25rem 0 0.5rem; }
+    .mode-toggle { appearance:none; width:3.25rem; height:1.9rem; background:#cbd5e1; border-radius:999px; position:relative; cursor:pointer; transition:background 0.2s ease; }
+    .mode-toggle:checked { background:#1f6feb; }
+    .mode-toggle::after { content:''; position:absolute; top:0.2rem; left:0.2rem; width:1.5rem; height:1.5rem; border-radius:999px; background:#fff; transition:transform 0.2s ease; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .mode-toggle:checked::after { transform:translateX(1.35rem); }
+    .mode-panel { display:grid; gap:0.9rem; }
+    .receive-panel[hidden], .standard-panel[hidden] { display:none !important; }
+    .inline-help { font-size:0.92rem; color:var(--muted); margin-top:-0.2rem; }
+    .preview-box { border:1px solid var(--line); background:#f8fafc; border-radius:12px; padding:0.9rem 1rem; }
+    .preview-box strong { display:block; margin-bottom:0.25rem; }
+    .receive-warning { color:#b45309; background:#fffbeb; border:1px solid #f59e0b; border-radius:10px; padding:0.8rem 0.9rem; }
+  </style>
 
-    <label>
-      Operator initials (optional)
-      <input type="text" name="operator" placeholder="RB" value="{{ operator }}">
-    </label>
+  <form method="post" class="stack" id="scan-form">
+    <input type="hidden" name="receive_mode" id="receive_mode_input" value="{{ 1 if receive_mode else 0 }}">
 
-    <label>
-      Note (optional)
-      <textarea name="note" rows="3" placeholder="Reason, bin refill, damaged part, etc.">{{ note }}</textarea>
-    </label>
+    <div class="mode-toggle-row">
+      <input class="mode-toggle" type="checkbox" id="receive_mode_toggle" {% if receive_mode %}checked{% endif %}>
+      <label for="receive_mode_toggle" style="margin:0; font-weight:700;">Receiving from Purchase Order?</label>
+    </div>
 
-    <label>
-      Purchase Order
-      <select name="purchase_order_id" style="min-height: 3.2rem; padding: 0.75rem; font-size: 1rem;">
-        <option value="">None</option>
-        {% for po in purchase_orders %}
-        <option value="{{ po.id }}" {% if purchase_order_id == po.id %}selected{% endif %}>
-          PO {{ po.po_number }}{% if po.order_date %} · {{ po.order_date }}{% endif %}{% if po.status %} · {{ po.status }}{% endif %}
-        </option>
-        {% endfor %}
-      </select>
-    </label>
+    <div id="standard-panel" class="mode-panel standard-panel" {% if receive_mode %}hidden{% endif %}>
+      <label>
+        Quantity
+        <input type="number" name="quantity" id="quantity_input" min="1" value="{{ quantity }}">
+      </label>
 
-    <div class="scan-choice-buttons">
-      <button type="submit" name="action" value="add" class="{% if preferred_action == 'add' %}selected-action{% endif %}">Add inventory</button>
-      <button type="submit" name="action" value="subtract" class="danger {% if preferred_action == 'subtract' %}selected-action{% endif %}">Subtract inventory</button>
+      <label>
+        Operator initials (optional)
+        <input type="text" name="operator" id="operator_input_standard" placeholder="RB" value="{{ operator }}">
+      </label>
+
+      <label>
+        Note (optional)
+        <textarea name="note" id="note_input_standard" rows="3" placeholder="Reason, bin refill, damaged part, etc.">{{ note }}</textarea>
+      </label>
+
+      <div class="scan-choice-buttons">
+        <button type="submit" name="action" value="add" class="{% if preferred_action == 'add' %}selected-action{% endif %}">Add inventory</button>
+        <button type="submit" name="action" value="subtract" class="danger {% if preferred_action == 'subtract' %}selected-action{% endif %}">Subtract inventory</button>
+      </div>
+    </div>
+
+    <div id="receive-panel" class="mode-panel receive-panel" {% if not receive_mode %}hidden{% endif %}>
+      <label>
+        Purchase Order
+        <select name="purchase_order_id" id="purchase_order_select" style="min-height: 3.2rem; padding: 0.75rem; font-size: 1rem;">
+          <option value="">None</option>
+          {% for po in purchase_orders %}
+          <option value="{{ po.id }}" {% if purchase_order_id == po.id %}selected{% endif %}>
+            PO {{ po.po_number }}{% if po.order_date %} · {{ po.order_date }}{% endif %}{% if po.status %} · {{ po.status }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        PO Units Received
+        <input type="number" name="po_units" id="po_units_input" min="1" value="{{ po_units }}">
+      </label>
+      <p class="inline-help">Enter PO units, not final inventory units. Example: if 1 pack contains 30 parts, enter 1 here.</p>
+
+      <div class="preview-box" id="conversion_preview">
+        <strong>Inventory Change Preview</strong>
+        <span id="conversion_preview_text">—</span>
+      </div>
+
+      <div id="po_required_message" class="receive-warning" {% if purchase_order_id %}hidden{% endif %}>
+        Select a Purchase Order to continue.
+      </div>
+
+      <label>
+        Operator initials (optional)
+        <input type="text" name="operator" id="operator_input_receive" placeholder="RB" value="{{ operator }}">
+      </label>
+
+      <label>
+        Note (optional)
+        <textarea name="note" id="note_input_receive" rows="3" placeholder="Box received, partial shipment, damaged packaging, etc.">{{ note }}</textarea>
+      </label>
+
+      <div class="scan-choice-buttons">
+        <button type="submit" id="receive_button" name="action" value="receive" class="{% if preferred_action == 'receive' %}selected-action{% endif %}">Receive</button>
+        <button type="submit" id="undo_receive_button" name="action" value="undo_receive" class="danger {% if preferred_action == 'undo_receive' %}selected-action{% endif %}">Undo Receive</button>
+      </div>
     </div>
   </form>
 </section>
+
+<script>
+  (() => {
+    const toggle = document.getElementById('receive_mode_toggle');
+    const receiveModeInput = document.getElementById('receive_mode_input');
+    const standardPanel = document.getElementById('standard-panel');
+    const receivePanel = document.getElementById('receive-panel');
+    const quantityInput = document.getElementById('quantity_input');
+    const poUnitsInput = document.getElementById('po_units_input');
+    const poSelect = document.getElementById('purchase_order_select');
+    const operatorStandard = document.getElementById('operator_input_standard');
+    const noteStandard = document.getElementById('note_input_standard');
+    const operatorReceive = document.getElementById('operator_input_receive');
+    const noteReceive = document.getElementById('note_input_receive');
+    const receiveButton = document.getElementById('receive_button');
+    const undoButton = document.getElementById('undo_receive_button');
+    const poRequiredMessage = document.getElementById('po_required_message');
+    const previewText = document.getElementById('conversion_preview_text');
+    const partsPerPoUnit = {{ part.parts_per_po_unit or 1 }};
+
+    function updatePreview() {
+      const poUnits = Math.max(1, parseInt(poUnitsInput.value || '1', 10));
+      const inventoryChange = poUnits * partsPerPoUnit;
+      previewText.textContent = `${poUnits} PO unit${poUnits === 1 ? '' : 's'} × ${partsPerPoUnit} part${partsPerPoUnit === 1 ? '' : 's'} per PO unit = ${inventoryChange} inventory unit${inventoryChange === 1 ? '' : 's'}`;
+    }
+
+    function syncMode() {
+      const receiveMode = toggle.checked;
+      receiveModeInput.value = receiveMode ? '1' : '0';
+      standardPanel.hidden = receiveMode;
+      receivePanel.hidden = !receiveMode;
+      quantityInput.disabled = receiveMode;
+      quantityInput.required = !receiveMode;
+      poUnitsInput.disabled = !receiveMode;
+      poUnitsInput.required = receiveMode;
+      poSelect.disabled = !receiveMode;
+      operatorStandard.disabled = receiveMode;
+      noteStandard.disabled = receiveMode;
+      operatorReceive.disabled = !receiveMode;
+      noteReceive.disabled = !receiveMode;
+      const hasPO = !!poSelect.value;
+      receiveButton.disabled = receiveMode && !hasPO;
+      undoButton.disabled = receiveMode && !hasPO;
+      poRequiredMessage.hidden = !receiveMode || hasPO;
+      updatePreview();
+    }
+
+    toggle.addEventListener('change', syncMode);
+    poSelect.addEventListener('change', syncMode);
+    poUnitsInput.addEventListener('input', updatePreview);
+    syncMode();
+  })();
+</script>
 {% endblock %}
