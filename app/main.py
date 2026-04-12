@@ -61,6 +61,7 @@ def render_part_scan(
     quantity: int = 1,
     operator: str = '',
     note: str = '',
+    purchase_order_id: str = '',
     error: str | None = None,
     status_code: int = 200,
 ):
@@ -71,6 +72,7 @@ def render_part_scan(
     normalized_action = preferred_action if preferred_action in VALID_ACTIONS else ''
     if preferred_action and preferred_action not in VALID_ACTIONS and not error:
         error = 'Unsupported action. Use add or subtract.'
+    purchase_orders = STORE.list_purchase_orders() if hasattr(STORE, 'list_purchase_orders') else []
     return templates.TemplateResponse(
         request,
         'scan_part.html',
@@ -81,6 +83,8 @@ def render_part_scan(
             quantity=max(1, int(quantity or 1)),
             operator=operator,
             note=note,
+            purchase_order_id=purchase_order_id or '',
+            purchase_orders=purchase_orders,
             error=error,
             title=f'Update {part.name}',
         ),
@@ -95,9 +99,10 @@ def apply_part_submission(
     quantity: int,
     operator: str,
     note: str,
+    purchase_order_id: str = '',
 ):
     try:
-        result = STORE.apply_part_action(
+        apply_kwargs = dict(
             sku=sku,
             action=action,
             quantity=int(quantity),
@@ -105,6 +110,9 @@ def apply_part_submission(
             note=note,
             source=f'qr:part:{sku}:{action}',
         )
+        if settings.store_mode == 'airtable':
+            apply_kwargs['purchase_order_id'] = purchase_order_id or ''
+        result = STORE.apply_part_action(**apply_kwargs)
         return templates.TemplateResponse(
             request,
             'success.html',
@@ -122,6 +130,7 @@ def apply_part_submission(
             quantity=max(1, int(quantity or 1)),
             operator=operator,
             note=note,
+            purchase_order_id=purchase_order_id or '',
             error=str(exc),
             status_code=400,
         )
@@ -159,8 +168,9 @@ def scan_part_submit(
     quantity: int = Form(1),
     operator: str = Form(''),
     note: str = Form(''),
+    purchase_order_id: str = Form(''),
 ):
-    return apply_part_submission(request, sku, action, quantity, operator, note)
+    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id)
 
 
 @app.get('/scan/part/{sku}/{action}', response_class=HTMLResponse)
@@ -176,8 +186,9 @@ def scan_part_submit_legacy(
     quantity: int = Form(1),
     operator: str = Form(''),
     note: str = Form(''),
+    purchase_order_id: str = Form(''),
 ):
-    return apply_part_submission(request, sku, action, quantity, operator, note)
+    return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id)
 
 
 @app.get('/scan/kit/{code}/{action}', response_class=HTMLResponse)
