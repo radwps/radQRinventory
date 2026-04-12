@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Sequence
 
 import requests
@@ -89,7 +89,8 @@ class AirtableStore(InventoryStore):
         self._request('PATCH', table, record_id=record_id, json_body={'fields': fields, 'typecast': True})
 
     def _now(self) -> str:
-        return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        mst = timezone(timedelta(hours=-7), name='MST')
+        return datetime.now(timezone.utc).astimezone(mst).replace(microsecond=0).strftime('%Y-%m-%d %I:%M:%S %p MST')
 
     def _coerce_int(self, value: Any) -> int:
         if value is None or value == '':
@@ -243,13 +244,28 @@ class AirtableStore(InventoryStore):
         text = str(value).strip()
         return [text] if text else []
 
-    def _transaction_type_label(self, action: str) -> str:
+    def _transaction_type_label(self, action: str, purchase_order_record_id: str | None = None) -> str:
         normalized = (action or '').strip().lower()
+        if normalized == 'add' and purchase_order_record_id:
+            return 'Receive'
         if 'subtract' in normalized:
             return 'Subtract'
         if 'receive' in normalized:
             return 'Receive'
         return 'Add'
+
+    def _transaction_sort_value(self, value: str) -> datetime:
+        text = (value or '').strip()
+        if not text:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        try:
+            return datetime.strptime(text, '%Y-%m-%d %I:%M:%S %p MST').replace(tzinfo=timezone(timedelta(hours=-7), name='MST'))
+        except ValueError:
+            pass
+        try:
+            return datetime.fromisoformat(text.replace('Z', '+00:00'))
+        except ValueError:
+            return datetime.min.replace(tzinfo=timezone.utc)
 
     def list_transactions(self, limit: int = 50) -> Sequence[Transaction]:
         if not self._transactions_table_configured():
@@ -295,7 +311,7 @@ class AirtableStore(InventoryStore):
                     source=str(self._first_field_value(fields, settings.field_txn_source, 'Source', default='') or '') or None,
                 )
             )
-        txns.sort(key=lambda t: t.created_at, reverse=True)
+        txns.sort(key=lambda t: self._transaction_sort_value(t.created_at), reverse=True)
         return txns[:limit]
 
     def _load_kits(self) -> tuple[dict[str, Kit], dict[str, list[KitComponent]]]:
@@ -383,7 +399,7 @@ class AirtableStore(InventoryStore):
         fields: dict[str, Any] = {
             'Timestamp': scanned_at,
             'Part': [part_record_id],
-            'Transaction Type': self._transaction_type_label(action),
+            'Transaction Type': self._transaction_type_label(action, purchase_order_record_id),
             'Quantity Change': delta,
             'Initials': operator.strip(),
             'Notes': note.strip(),
