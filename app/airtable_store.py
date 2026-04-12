@@ -50,7 +50,10 @@ class AirtableStore(InventoryStore):
         url = f"{self.base_url}/{requests.utils.quote(table, safe='')}"
         if record_id:
             url += f"/{requests.utils.quote(record_id, safe='')}"
-        response = self.session.request(method, url, params=params, json=json_body, timeout=30)
+        try:
+            response = self.session.request(method, url, params=params, json=json_body, timeout=30)
+        except requests.RequestException as exc:
+            raise ValidationError(f'Airtable API request failed on {table}: {exc}') from exc
         if response.status_code >= 400:
             try:
                 payload = response.json()
@@ -195,25 +198,41 @@ class AirtableStore(InventoryStore):
         text = str(exc).lower()
         return table.lower() in text and ('table' in text and ('not found' in text or 'could not find' in text or 'unknown field name' in text))
 
-    def list_transactions(self, limit: int = 50) -> Sequence[Transaction]:
-        if not settings.airtable_log_transactions or not settings.airtable_transactions_table:
+    def _transactions_table_configured(self) -> bool:
+        return bool((settings.airtable_transactions_table or '').strip())
+
+    def _first_field_value(self, fields: dict[str, Any], *names: str, default: Any = '') -> Any:
+        for name in names:
+            if not name:
+                continue
+            if name in fields:
+                return fields.get(name)
+        return default
+
+    def _linked_record_ids(self, fields: dict[str, Any], *names: str) -> list[str]:
+        value = self._first_field_value(fields, *names, default=[])
+        if value is None:
             return []
-        _, _, sku_to_part = self._load_parts()
+        if isinstance(value, list):
+            return [str(item) for item in value if str(item).strip()]
+        text = str(value).strip()
+        return [text] if text else []
+
+    def _transaction_type_label(self, action: str) -> str:
+        normalized = (action or '').strip().lower()
+        if 'subtract' in normalized:
+            return 'Subtract'
+        if 'receive' in normalized:
+            return 'Receive'
+        return 'Add'
+
+    def list_transactions(self, limit: int = 50) -> Sequence[Transaction]:
+        if not self._transactions_table_configured():
+            return []
+        parts, _, _ = self._load_parts()
+        part_by_record_id = {part.external_id: part for part in parts if part.external_id}
         try:
-            raw_txns = self._list_all_records(
-                settings.airtable_transactions_table,
-                fields=[
-                    settings.field_txn_sku,
-                    settings.field_txn_action,
-                    settings.field_txn_quantity,
-                    settings.field_txn_delta,
-                    settings.field_txn_batch_id,
-                    settings.field_txn_operator,
-                    settings.field_txn_note,
-                    settings.field_txn_source,
-                    settings.field_txn_scanned_at,
-                ],
-            )
+            raw_txns = self._list_all_records(settings.airtable_transactions_table)
         except ValidationError as exc:
             if self._is_missing_table_error(exc, settings.airtable_transactions_table):
                 return []
@@ -222,20 +241,33 @@ class AirtableStore(InventoryStore):
         txns: list[Transaction] = []
         for record in raw_txns:
             fields = record.get('fields', {})
-            sku = str(fields.get(settings.field_txn_sku, '')).strip()
-            part_name = sku_to_part.get(sku).name if sku in sku_to_part else sku
+            linked_part_ids = self._linked_record_ids(fields, 'Part', settings.field_txn_part)
+            linked_part = part_by_record_id.get(linked_part_ids[0]) if linked_part_ids else None
+            delta = self._coerce_int(
+                self._first_field_value(fields, 'Quantity Change', settings.field_txn_delta, 'Delta', default=0)
+            )
+            quantity_value = self._first_field_value(fields, settings.field_txn_quantity, 'Quantity', default=None)
+            quantity = self._coerce_int(quantity_value) if quantity_value not in (None, '') else abs(delta)
+            sku = linked_part.sku if linked_part else str(
+                self._first_field_value(fields, settings.field_txn_sku, 'SKU', default='')
+            ).strip()
+            part_name = linked_part.name if linked_part else sku
             txns.append(
                 Transaction(
-                    created_at=str(fields.get(settings.field_txn_scanned_at, record.get('createdTime', ''))),
+                    created_at=str(
+                        self._first_field_value(fields, 'Timestamp', settings.field_txn_scanned_at, 'Scanned At', default=record.get('createdTime', ''))
+                    ),
                     sku=sku,
                     part_name=part_name,
-                    action=str(fields.get(settings.field_txn_action, '')),
-                    quantity=self._coerce_int(fields.get(settings.field_txn_quantity, 0)),
-                    delta=self._coerce_int(fields.get(settings.field_txn_delta, 0)),
-                    batch_id=str(fields.get(settings.field_txn_batch_id, '') or '') or None,
-                    operator=str(fields.get(settings.field_txn_operator, '') or '') or None,
-                    note=str(fields.get(settings.field_txn_note, '') or '') or None,
-                    source=str(fields.get(settings.field_txn_source, '') or '') or None,
+                    action=str(
+                        self._first_field_value(fields, 'Transaction Type', settings.field_txn_action, 'Action', default='')
+                    ),
+                    quantity=quantity,
+                    delta=delta,
+                    batch_id=str(self._first_field_value(fields, settings.field_txn_batch_id, 'Batch ID', default='') or '') or None,
+                    operator=str(self._first_field_value(fields, 'Initials', settings.field_txn_operator, 'Operator', default='') or '') or None,
+                    note=str(self._first_field_value(fields, 'Notes', settings.field_txn_note, 'Note', default='') or '') or None,
+                    source=str(self._first_field_value(fields, settings.field_txn_source, 'Source', default='') or '') or None,
                 )
             )
         txns.sort(key=lambda t: t.created_at, reverse=True)
@@ -312,7 +344,27 @@ class AirtableStore(InventoryStore):
         if quantity < 1:
             raise ValidationError('Quantity must be at least 1.')
 
-    def _build_transaction_fields(
+    def _build_transaction_fields_inventory_transactions(
+        self,
+        *,
+        part_record_id: str,
+        action: str,
+        delta: int,
+        operator: str,
+        note: str,
+        scanned_at: str,
+    ) -> dict[str, Any]:
+        return {
+            'Timestamp': scanned_at,
+            'Part': [part_record_id],
+            'Transaction Type': self._transaction_type_label(action),
+            'Quantity Change': delta,
+            'Initials': operator.strip(),
+            'Notes': note.strip(),
+            'Purchase Order': 0,
+        }
+
+    def _build_transaction_fields_legacy(
         self,
         *,
         part_record_id: str,
@@ -349,6 +401,61 @@ class AirtableStore(InventoryStore):
             fields[settings.field_txn_scanned_at] = scanned_at
         return fields
 
+    def _create_transaction_record(
+        self,
+        *,
+        part_record_id: str,
+        sku: str,
+        action: str,
+        quantity: int,
+        delta: int,
+        batch_id: str,
+        operator: str,
+        note: str,
+        source: str,
+        scanned_at: str,
+    ) -> None:
+        if not self._transactions_table_configured():
+            return
+        field_sets: list[dict[str, Any]] = [
+            self._build_transaction_fields_inventory_transactions(
+                part_record_id=part_record_id,
+                action=action,
+                delta=delta,
+                operator=operator,
+                note=note,
+                scanned_at=scanned_at,
+            )
+        ]
+        legacy_fields = self._build_transaction_fields_legacy(
+            part_record_id=part_record_id,
+            sku=sku,
+            action=action,
+            quantity=quantity,
+            delta=delta,
+            batch_id=batch_id,
+            operator=operator,
+            note=note,
+            source=source,
+            scanned_at=scanned_at,
+        )
+        if legacy_fields != field_sets[0]:
+            field_sets.append(legacy_fields)
+
+        last_error: ValidationError | None = None
+        for fields in field_sets:
+            try:
+                self._create_records(settings.airtable_transactions_table, [{'fields': fields}])
+                return
+            except ValidationError as exc:
+                last_error = exc
+                if self._is_missing_table_error(exc, settings.airtable_transactions_table):
+                    raise
+                continue
+
+        if last_error is not None:
+            raise last_error
+
     def _try_log_transaction(
         self,
         *,
@@ -363,22 +470,21 @@ class AirtableStore(InventoryStore):
         source: str,
         scanned_at: str,
     ) -> str | None:
-        if not settings.airtable_log_transactions or not settings.airtable_transactions_table:
+        if not self._transactions_table_configured():
             return None
-        fields = self._build_transaction_fields(
-            part_record_id=part_record_id,
-            sku=sku,
-            action=action,
-            quantity=quantity,
-            delta=delta,
-            batch_id=batch_id,
-            operator=operator,
-            note=note,
-            source=source,
-            scanned_at=scanned_at,
-        )
         try:
-            self._create_records(settings.airtable_transactions_table, [{'fields': fields}])
+            self._create_transaction_record(
+                part_record_id=part_record_id,
+                sku=sku,
+                action=action,
+                quantity=quantity,
+                delta=delta,
+                batch_id=batch_id,
+                operator=operator,
+                note=note,
+                source=source,
+                scanned_at=scanned_at,
+            )
             return None
         except ValidationError as exc:
             if self._is_missing_table_error(exc, settings.airtable_transactions_table):
@@ -410,7 +516,7 @@ class AirtableStore(InventoryStore):
         if settings.airtable_sync_mode == 'transactions':
             batch_id = str(uuid.uuid4())
             scanned_at = self._now()
-            fields = self._build_transaction_fields(
+            self._create_transaction_record(
                 part_record_id=sku_to_id[sku],
                 sku=sku,
                 action=action,
@@ -422,7 +528,6 @@ class AirtableStore(InventoryStore):
                 source=source.strip() or f'qr:part:{sku}:{action}',
                 scanned_at=scanned_at,
             )
-            self._create_records(settings.airtable_transactions_table, [{'fields': fields}])
             updated = self.get_part(sku)
             return ActionResult(
                 ok=True,
@@ -464,7 +569,7 @@ class AirtableStore(InventoryStore):
         message = f'Updated {updated.name}: {part.on_hand} -> {updated.on_hand}.'
         if log_error:
             message += f' Inventory count saved, but the transaction log was not written because {log_error}.'
-        elif settings.airtable_log_transactions and settings.airtable_transactions_table:
+        elif self._transactions_table_configured():
             message += ' Inventory count saved and transaction logged to Airtable.'
         else:
             message += ' Inventory count saved directly to Airtable.'
@@ -473,7 +578,7 @@ class AirtableStore(InventoryStore):
             message=message,
             batch_id=batch_id,
             touched_parts=[updated],
-            transactions_created=0 if log_error or not settings.airtable_log_transactions else 1,
+            transactions_created=0 if log_error or not self._transactions_table_configured() else 1,
         )
 
     def apply_kit_action(
@@ -507,16 +612,12 @@ class AirtableStore(InventoryStore):
                     raise ValidationError(f"Part '{comp.sku}' is missing from the Airtable parts table.")
                 records.append(
                     {
-                        'fields': self._build_transaction_fields(
+                        'fields': self._build_transaction_fields_inventory_transactions(
                             part_record_id=sku_to_id[comp.sku],
-                            sku=comp.sku,
                             action=f'kit_{action}',
-                            quantity=comp.qty_per_kit,
                             delta=multiplier * comp.qty_per_kit,
-                            batch_id=batch_id,
                             operator=operator,
                             note=note,
-                            source=source.strip() or f'qr:kit:{code}:{action}',
                             scanned_at=scanned_at,
                         )
                     }
@@ -572,13 +673,13 @@ class AirtableStore(InventoryStore):
             )
             if log_error:
                 log_failures.append(f'{comp.part_name}: {log_error}')
-            elif settings.airtable_log_transactions:
+            elif self._transactions_table_configured():
                 tx_count += 1
 
         message = f'Updated {len(touched_parts)} BOM line items for kit {kit.name}.'
         if log_failures:
             message += ' Inventory counts were saved, but some transaction log entries were skipped: ' + '; '.join(log_failures)
-        elif settings.airtable_log_transactions and settings.airtable_transactions_table:
+        elif self._transactions_table_configured():
             message += ' Inventory counts were saved and transaction log entries were created.'
         else:
             message += ' Inventory counts were saved directly to Airtable.'
