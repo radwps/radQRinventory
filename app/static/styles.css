@@ -338,3 +338,28 @@ input, textarea {
     min-height: 30mm;
   }
 }
+
+.whole-unit-label-card {
+  border: 2px solid var(--danger);
+}
+.whole-unit-label-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.whole-unit-label-image {
+  width: 56mm;
+  height: 56mm;
+  image-rendering: pixelated;
+}
+.whole-unit-preview-box {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+}
+@media print {
+  .whole-unit-label-image {
+    width: 60mm;
+    height: 60mm;
+  }
+}

@@ -15,6 +15,7 @@ class Part:
     reorder_level: int = 0
     external_id: str | None = None
     parts_per_po_unit: int = 1
+    parts_per_rad_unit: int = 0
 
 
 @dataclass
@@ -90,6 +91,10 @@ class InventoryStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_whole_unit(self) -> Kit | None:
+        raise NotImplementedError
+
+    @abstractmethod
     def apply_part_action(
         self,
         sku: str,
@@ -105,6 +110,16 @@ class InventoryStore(ABC):
     def apply_kit_action(
         self,
         code: str,
+        action: str,
+        operator: str = "",
+        note: str = "",
+        source: str = "",
+    ) -> ActionResult:
+        raise NotImplementedError
+
+    @abstractmethod
+    def apply_whole_unit_action(
+        self,
         action: str,
         operator: str = "",
         note: str = "",

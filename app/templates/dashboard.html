@@ -8,10 +8,10 @@
       Each part container gets one printed QR code.
       Each scan opens a phone page where the operator chooses <strong>Add</strong> or <strong>Subtract</strong> and logs the transaction.
     </p>
-    {% if settings.enable_kits %}
-    <p class="subtle">Whole-box kit labels are currently enabled.</p>
+    {% if whole_unit %}
+    <p class="subtle">Whole RAD Box Unit scanning is enabled for this build.</p>
     {% else %}
-    <p class="subtle">Whole-box kit labels are currently disabled for this build.</p>
+    <p class="subtle">Whole RAD Box Unit scanning is not configured yet.</p>
     {% endif %}
   </div>
   {% if store_mode == 'mock' %}
@@ -20,6 +20,30 @@
   </form>
   {% endif %}
 </section>
+
+{% if whole_unit %}
+<section class="card">
+  <h3>Whole RAD Box Unit</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Unit</th>
+          <th>Description</th>
+          <th>Scan page</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>{{ whole_unit.code }}</code></td>
+          <td>{{ whole_unit.name }}</td>
+          <td><a class="pill danger" href="/scan/whole-unit">Open scan page</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 <section class="card">
   <h3>Parts</h3>

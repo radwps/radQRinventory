@@ -151,10 +151,72 @@ def apply_part_submission(
         )
 
 
+def render_whole_unit_scan(
+    request: Request,
+    preferred_action: str = '',
+    operator: str = '',
+    note: str = 'Whole RAD Unit',
+    error: str | None = None,
+    status_code: int = 200,
+):
+    whole_unit = STORE.get_whole_unit() if hasattr(STORE, 'get_whole_unit') else None
+    if not whole_unit:
+        raise HTTPException(status_code=404, detail='Whole RAD Box Unit is not configured.')
+    normalized_action = preferred_action if preferred_action in {'add', 'subtract'} else ''
+    return templates.TemplateResponse(
+        request,
+        'scan_whole_unit.html',
+        page_context(
+            request,
+            whole_unit=whole_unit,
+            preferred_action=normalized_action,
+            operator=operator,
+            note=note or 'Whole RAD Unit',
+            error=error,
+            title='Update Whole RAD Box Unit',
+        ),
+        status_code=status_code,
+    )
+
+
+def apply_whole_unit_submission(
+    request: Request,
+    action: str,
+    operator: str,
+    note: str,
+):
+    try:
+        result = STORE.apply_whole_unit_action(
+            action=action,
+            operator=operator,
+            note=note or 'Whole RAD Unit',
+            source=f'qr:whole_unit:{action}',
+        )
+        return templates.TemplateResponse(
+            request,
+            'success.html',
+            page_context(
+                request,
+                result=result,
+                title='Whole RAD Box scan logged',
+            ),
+        )
+    except InventoryError as exc:
+        return render_whole_unit_scan(
+            request,
+            preferred_action=action,
+            operator=operator,
+            note=note or 'Whole RAD Unit',
+            error=str(exc),
+            status_code=400,
+        )
+
+
 @app.get('/', response_class=HTMLResponse)
 def dashboard(request: Request):
     parts = STORE.list_parts()
     kits = STORE.list_kits() if settings.enable_kits else []
+    whole_unit = STORE.get_whole_unit() if hasattr(STORE, 'get_whole_unit') else None
     transactions = STORE.list_transactions(limit=20)
     return templates.TemplateResponse(
         request,
@@ -163,6 +225,7 @@ def dashboard(request: Request):
             request,
             parts=parts,
             kits=kits,
+            whole_unit=whole_unit,
             transactions=transactions,
             store_mode=settings.store_mode,
             title=settings.app_title,
@@ -208,6 +271,36 @@ def scan_part_submit_legacy(
     po_units: int = Form(1),
 ):
     return apply_part_submission(request, sku, action, quantity, operator, note, purchase_order_id, receive_mode in {'1', 'true', 'on', 'yes'}, po_units)
+
+
+@app.get('/scan/whole-unit', response_class=HTMLResponse)
+def scan_whole_unit(request: Request, action: str = Query(default='')):
+    return render_whole_unit_scan(request, preferred_action=action)
+
+
+@app.post('/scan/whole-unit', response_class=HTMLResponse)
+def scan_whole_unit_submit(
+    request: Request,
+    action: str = Form(...),
+    operator: str = Form(''),
+    note: str = Form('Whole RAD Unit'),
+):
+    return apply_whole_unit_submission(request, action, operator, note)
+
+
+@app.get('/scan/whole-unit/{action}', response_class=HTMLResponse)
+def scan_whole_unit_legacy(request: Request, action: str):
+    return render_whole_unit_scan(request, preferred_action=action)
+
+
+@app.post('/scan/whole-unit/{action}', response_class=HTMLResponse)
+def scan_whole_unit_submit_legacy(
+    request: Request,
+    action: str,
+    operator: str = Form(''),
+    note: str = Form('Whole RAD Unit'),
+):
+    return apply_whole_unit_submission(request, action, operator, note)
 
 
 @app.get('/scan/kit/{code}/{action}', response_class=HTMLResponse)
@@ -278,6 +371,7 @@ def scan_kit_submit(
 def labels(request: Request, base_url: str | None = None):
     public_base = (base_url or settings.public_base_url or str(request.base_url)).rstrip('/')
     parts = STORE.list_parts()
+    whole_unit = STORE.get_whole_unit() if hasattr(STORE, 'get_whole_unit') else None
 
     part_labels = []
     for part in parts:
@@ -289,6 +383,15 @@ def labels(request: Request, base_url: str | None = None):
                 'scan_qr': qr_data_uri(scan_url),
             }
         )
+
+    whole_unit_label = None
+    if whole_unit:
+        whole_url = f'{public_base}/scan/whole-unit'
+        whole_unit_label = {
+            'whole_unit': whole_unit,
+            'scan_url': whole_url,
+            'scan_qr': qr_data_uri(whole_url),
+        }
 
     kit_labels = []
     if settings.enable_kits:
@@ -311,6 +414,7 @@ def labels(request: Request, base_url: str | None = None):
             part_labels=part_labels,
             part_label_pages=chunked(part_labels, 16),
             kit_labels=kit_labels,
+            whole_unit_label=whole_unit_label,
             title='Printable labels',
         ),
     )
