@@ -54,7 +54,9 @@ class MockStore(InventoryStore):
                     name TEXT NOT NULL,
                     container_label TEXT NOT NULL,
                     starting_qty INTEGER NOT NULL DEFAULT 0,
-                    reorder_level INTEGER NOT NULL DEFAULT 0
+                    reorder_level INTEGER NOT NULL DEFAULT 0,
+                    parts_per_po_unit INTEGER NOT NULL DEFAULT 1,
+                    parts_per_rad_unit INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE TABLE IF NOT EXISTS kits (
@@ -87,6 +89,14 @@ class MockStore(InventoryStore):
                 );
                 """
             )
+            self._ensure_column('parts', 'parts_per_po_unit', 'INTEGER NOT NULL DEFAULT 1')
+            self._ensure_column('parts', 'parts_per_rad_unit', 'INTEGER NOT NULL DEFAULT 0')
+
+    def _ensure_column(self, table: str, column: str, sql_type: str) -> None:
+        with self._connect() as conn:
+            columns = {row['name'] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            if column not in columns:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
 
     def _seed_if_empty(self) -> None:
         with self._connect() as conn:
@@ -95,7 +105,7 @@ class MockStore(InventoryStore):
                 return
             seed = json.loads(self.seed_file.read_text())
             conn.executemany(
-                "INSERT INTO parts (sku, name, container_label, starting_qty, reorder_level) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO parts (sku, name, container_label, starting_qty, reorder_level, parts_per_po_unit, parts_per_rad_unit) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [
                     (
                         part["sku"],
@@ -103,6 +113,8 @@ class MockStore(InventoryStore):
                         part.get("container_label", part["sku"]),
                         int(part.get("starting_qty", 0)),
                         int(part.get("reorder_level", 0)),
+                        int(part.get("parts_per_po_unit", 1) or 1),
+                        int(part.get("parts_per_rad_unit", 0) or 0),
                     )
                     for part in seed.get("parts", [])
                 ],
@@ -136,11 +148,13 @@ class MockStore(InventoryStore):
             on_hand=int(row["on_hand"] or 0),
             reorder_level=int(row["reorder_level"] or 0),
             external_id=str(row["id"]),
+            parts_per_po_unit=int(row["parts_per_po_unit"] or 1) if "parts_per_po_unit" in row.keys() else 1,
+            parts_per_rad_unit=int(row["parts_per_rad_unit"] or 0) if "parts_per_rad_unit" in row.keys() else 0,
         )
 
     def _part_query(self) -> str:
         return (
-            "SELECT p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, "
+            "SELECT p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, p.parts_per_po_unit, p.parts_per_rad_unit, "
             "COALESCE(p.starting_qty + SUM(t.delta), p.starting_qty) AS on_hand "
             "FROM parts p "
             "LEFT JOIN transactions t ON t.sku = p.sku "
@@ -150,7 +164,7 @@ class MockStore(InventoryStore):
         with self._connect() as conn:
             rows = conn.execute(
                 self._part_query()
-                + "GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level "
+                + "GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, p.parts_per_po_unit, p.parts_per_rad_unit "
             ).fetchall()
         parts = [self._part_row_to_model(row) for row in rows]
         return sort_in_catalog_order(parts, get_sku=lambda part: part.sku, get_name=lambda part: part.name)
@@ -160,7 +174,7 @@ class MockStore(InventoryStore):
             row = conn.execute(
                 self._part_query()
                 + "WHERE p.sku = ? "
-                + "GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level",
+                + "GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, p.parts_per_po_unit, p.parts_per_rad_unit",
                 (sku,),
             ).fetchone()
         if not row:
@@ -215,7 +229,7 @@ class MockStore(InventoryStore):
                 JOIN kit_items ki ON ki.part_sku = p.sku
                 LEFT JOIN transactions t ON t.sku = p.sku
                 WHERE ki.kit_id = ?
-                GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, ki.qty_per_kit
+                GROUP BY p.id, p.sku, p.name, p.container_label, p.starting_qty, p.reorder_level, p.parts_per_po_unit, p.parts_per_rad_unit, ki.qty_per_kit
                 ORDER BY p.name
                 """,
                 (kit_row["id"],),
@@ -230,6 +244,22 @@ class MockStore(InventoryStore):
             for row in comp_rows
         ]
         return Kit(code=kit_row["code"], name=kit_row["name"], external_id=str(kit_row["id"]), components=components)
+
+    def get_whole_unit(self) -> Kit | None:
+        parts = self.list_parts()
+        components = [
+            KitComponent(
+                sku=part.sku,
+                part_name=part.name,
+                qty_per_kit=int(part.parts_per_rad_unit or 0),
+                on_hand=part.on_hand,
+            )
+            for part in parts
+            if int(getattr(part, "parts_per_rad_unit", 0) or 0) > 0
+        ]
+        if not components:
+            return None
+        return Kit(code='WHOLE-RAD-BOX', name='Whole RAD Box Unit', components=components)
 
     def _validate_action(self, action: str) -> None:
         if action not in {"add", "subtract"}:
@@ -324,6 +354,55 @@ class MockStore(InventoryStore):
         return ActionResult(
             ok=True,
             message=f"Applied {action} for kit {kit.name}. Updated {len(touched_parts)} parts.",
+            batch_id=batch_id,
+            touched_parts=touched_parts,
+            transactions_created=len(touched_parts),
+        )
+
+    def apply_whole_unit_action(
+        self,
+        action: str,
+        operator: str = "",
+        note: str = "",
+        source: str = "",
+    ) -> ActionResult:
+        self._validate_action(action)
+        whole = self.get_whole_unit()
+        if not whole or not whole.components:
+            raise ValidationError("Whole RAD Box Unit is not configured. Add values to Parts per RAD Unit first.")
+
+        multiplier = 1 if action == "add" else -1
+        if not self.allow_negative_stock and action == "subtract":
+            shortages = [comp for comp in whole.components if comp.on_hand - comp.qty_per_kit < 0]
+            if shortages:
+                details = "; ".join(f"{comp.part_name}: need {comp.qty_per_kit}, have {comp.on_hand}" for comp in shortages)
+                raise ValidationError(f"Whole RAD Box subtract blocked because stock would go negative. {details}")
+
+        batch_id = str(uuid.uuid4())
+        now = self._now()
+        with self._connect() as conn:
+            for comp in whole.components:
+                conn.execute(
+                    """
+                    INSERT INTO transactions (created_at, sku, action, quantity, delta, batch_id, operator, note, source)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        now,
+                        comp.sku,
+                        action,
+                        comp.qty_per_kit,
+                        multiplier * comp.qty_per_kit,
+                        batch_id,
+                        operator.strip(),
+                        note.strip(),
+                        source.strip() or f"qr:whole_unit:{action}",
+                    ),
+                )
+        touched_parts = [self.get_part(comp.sku) for comp in whole.components]
+        return ActionResult(
+            ok=True,
+            message=f"Applied {action} for {whole.name}. Updated {len(touched_parts)} parts.",
             batch_id=batch_id,
             touched_parts=touched_parts,
             transactions_created=len(touched_parts),
