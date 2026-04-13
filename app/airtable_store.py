@@ -130,6 +130,7 @@ class AirtableStore(InventoryStore):
         parts_per_po_unit = self._coerce_int(fields.get(settings.field_part_parts_per_po_unit, 1)) if settings.field_part_parts_per_po_unit else 1
         if parts_per_po_unit <= 0:
             parts_per_po_unit = 1
+        parts_per_rad_unit = self._coerce_int(fields.get(settings.field_part_parts_per_rad_unit, 0)) if settings.field_part_parts_per_rad_unit else 0
 
         return Part(
             sku=sku,
@@ -140,6 +141,7 @@ class AirtableStore(InventoryStore):
             reorder_level=reorder_level,
             external_id=record['id'],
             parts_per_po_unit=parts_per_po_unit,
+            parts_per_rad_unit=parts_per_rad_unit,
         )
 
     def _candidate_parts_tables(self) -> list[str]:
@@ -162,6 +164,7 @@ class AirtableStore(InventoryStore):
             settings.field_part_on_hand,
             settings.field_part_reorder_level,
             settings.field_part_parts_per_po_unit,
+            settings.field_part_parts_per_rad_unit,
         ]
         for table in self._candidate_parts_tables():
             try:
@@ -225,6 +228,22 @@ class AirtableStore(InventoryStore):
                 }
             )
         return purchase_orders
+
+    def get_whole_unit(self) -> Kit | None:
+        parts, _, _ = self._load_parts()
+        components = [
+            KitComponent(
+                sku=part.sku,
+                part_name=part.name,
+                qty_per_kit=int(getattr(part, 'parts_per_rad_unit', 0) or 0),
+                on_hand=part.on_hand,
+            )
+            for part in parts
+            if int(getattr(part, 'parts_per_rad_unit', 0) or 0) > 0
+        ]
+        if not components:
+            return None
+        return Kit(code='WHOLE-RAD-BOX', name='Whole RAD Box Unit', components=components)
 
     def _is_missing_table_error(self, exc: Exception, table: str) -> bool:
         text = str(exc).lower()
@@ -790,6 +809,87 @@ class AirtableStore(InventoryStore):
                 tx_count += 1
 
         message = f'Updated {len(touched_parts)} BOM line items for kit {kit.name}.'
+        if log_failures:
+            message += ' Inventory counts were saved, but some transaction log entries were skipped: ' + '; '.join(log_failures)
+        elif self._transactions_table_configured():
+            message += ' Inventory counts were saved and transaction log entries were created.'
+        else:
+            message += ' Inventory counts were saved directly to Airtable.'
+        return ActionResult(
+            ok=True,
+            message=message,
+            batch_id=batch_id,
+            touched_parts=touched_parts,
+            transactions_created=tx_count,
+        )
+
+    def apply_whole_unit_action(
+        self,
+        action: str,
+        operator: str = '',
+        note: str = '',
+        source: str = '',
+    ) -> ActionResult:
+        self._validate_action(action)
+        whole = self.get_whole_unit()
+        if not whole or not whole.components:
+            raise ValidationError('Whole RAD Box Unit is not configured. Add values to Parts per RAD Unit first.')
+
+        _, sku_to_id, _ = self._load_parts()
+        if not self.allow_negative_stock and action == 'subtract':
+            shortages = [comp for comp in whole.components if comp.on_hand - comp.qty_per_kit < 0]
+            if shortages:
+                details = '; '.join(
+                    f'{comp.part_name}: need {comp.qty_per_kit}, have {comp.on_hand}' for comp in shortages
+                )
+                raise ValidationError(f'Whole RAD Box Unit subtract blocked because stock would go negative. {details}')
+
+        multiplier = 1 if action == 'add' else -1
+        batch_id = str(uuid.uuid4())
+        scanned_at = self._now()
+        touched_parts: list[Part] = []
+        log_failures: list[str] = []
+        tx_count = 0
+        count_field = settings.field_part_on_hand or settings.field_part_starting_qty
+        if not count_field:
+            raise ValidationError('No Airtable count field is configured. Set FIELD_PART_ON_HAND or FIELD_PART_STARTING_QTY.')
+
+        target_table = self._resolved_parts_table or settings.airtable_parts_table
+        for comp in whole.components:
+            record_id = sku_to_id.get(comp.sku)
+            if not record_id:
+                raise ValidationError(f"Part '{comp.sku}' is missing from the Airtable parts table.")
+            new_qty = comp.on_hand + (multiplier * comp.qty_per_kit)
+            self._update_record(target_table, record_id, {count_field: new_qty})
+            touched_parts.append(
+                Part(
+                    sku=comp.sku,
+                    name=comp.part_name,
+                    container_label='',
+                    starting_qty=0,
+                    on_hand=new_qty,
+                    reorder_level=0,
+                    external_id=record_id,
+                )
+            )
+            log_error = self._try_log_transaction(
+                part_record_id=record_id,
+                sku=comp.sku,
+                action=action,
+                quantity=comp.qty_per_kit,
+                delta=multiplier * comp.qty_per_kit,
+                batch_id=batch_id,
+                operator=operator,
+                note=note,
+                source=source.strip() or f'qr:whole_unit:{action}',
+                scanned_at=scanned_at,
+            )
+            if log_error:
+                log_failures.append(f'{comp.part_name}: {log_error}')
+            elif self._transactions_table_configured():
+                tx_count += 1
+
+        message = f'Applied {action} for {whole.name}. Updated {len(touched_parts)} parts.'
         if log_failures:
             message += ' Inventory counts were saved, but some transaction log entries were skipped: ' + '; '.join(log_failures)
         elif self._transactions_table_configured():
