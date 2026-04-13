@@ -19,6 +19,20 @@
   </div>
 </section>
 
+{% if whole_unit_label %}
+<section class="card whole-unit-label-card">
+  <h2>Whole RAD Box Unit QR Code</h2>
+  <p class="subtle">Use this QR code to add or subtract one complete RAD box unit from inventory.</p>
+  <div class="whole-unit-label-hero">
+    <img class="whole-unit-label-image" src="{{ whole_unit_label.scan_qr }}" alt="Whole RAD Box Unit QR">
+    <div>
+      <h3>{{ whole_unit_label.whole_unit.name }}</h3>
+      <p><code>{{ whole_unit_label.whole_unit.code }}</code></p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="label-pages">
   {% for page in part_label_pages %}
   <article class="label-page letter-page" aria-label="Label page {{ loop.index }}">

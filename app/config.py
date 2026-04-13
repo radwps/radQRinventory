@@ -49,6 +49,7 @@ class Settings:
     field_part_on_hand: str = os.getenv('FIELD_PART_ON_HAND', 'Quantity In Stock').strip()
     field_part_reorder_level: str = os.getenv('FIELD_PART_REORDER_LEVEL', '').strip()
     field_part_parts_per_po_unit: str = os.getenv('FIELD_PART_PARTS_PER_PO_UNIT', 'Parts per PO Unit').strip()
+    field_part_parts_per_rad_unit: str = os.getenv('FIELD_PART_PARTS_PER_RAD_UNIT', 'Parts per RAD Unit').strip()
 
     field_txn_part: str = os.getenv('FIELD_TXN_PART', 'Part').strip()
     field_txn_sku: str = os.getenv('FIELD_TXN_SKU', 'SKU').strip()

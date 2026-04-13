@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card narrow">
+  <p><a href="/">&larr; Back to dashboard</a></p>
+  <h2>Update Whole RAD Box Unit</h2>
+  <p class="subtle">This QR code adjusts every Inventory part using its <strong>Parts per RAD Unit</strong> value. Use <strong>Subtract</strong> when a complete RAD box is built/used. Use <strong>Add</strong> only to fix an error.</p>
+
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="stack">
+    <label>
+      Operator initials (optional)
+      <input type="text" name="operator" placeholder="RB" value="{{ operator }}">
+    </label>
+
+    <label>
+      Note (optional)
+      <textarea name="note" rows="3" placeholder="Whole RAD Unit">{{ note }}</textarea>
+    </label>
+
+    <div class="preview-box whole-unit-preview-box">
+      <strong>Whole RAD Box Unit</strong>
+      <span>{{ whole_unit.components|length }} parts will be adjusted automatically.</span>
+    </div>
+
+    <div class="scan-choice-buttons">
+      <button type="submit" name="action" value="add" class="{% if preferred_action == 'add' %}selected-action{% endif %}">Add whole box</button>
+      <button type="submit" name="action" value="subtract" class="danger {% if preferred_action == 'subtract' %}selected-action{% endif %}">Subtract whole box</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
