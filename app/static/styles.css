@@ -8,7 +8,6 @@
   --danger: #b42318;
   --success: #0f766e;
   --secondary: #475467;
-  --site-header-bg: {{ settings.header_bg_color }};
 }
 
 * { box-sizing: border-box; }
