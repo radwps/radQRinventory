@@ -30,7 +30,7 @@ code {
   margin: 0 auto;
 }
 .site-header {
-  background: #0f172a;
+  background: var(--site-header-bg);
   color: #fff;
   padding: 1rem 0;
   margin-bottom: 1.25rem;

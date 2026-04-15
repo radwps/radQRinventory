@@ -19,6 +19,15 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
         return default
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
+def _app_variant() -> str:
+    return os.getenv("APP_VARIANT", "live").strip().lower()
+
+def _header_prefix() -> str:
+    return "QA Version - " if _app_variant() == "qa" else ""
+
+def _header_bg_color() -> str:
+    # pick whatever QA color you like
+    return "#ffa500" if _app_variant() == "qa" else "#0f172a"
 
 @dataclass(frozen=True)
 class Settings:
@@ -28,6 +37,10 @@ class Settings:
     store_mode: str = os.getenv('STORE_MODE', 'mock').strip().lower()
     allow_negative_stock: bool = _as_bool(os.getenv('ALLOW_NEGATIVE_STOCK'), False)
     enable_kits: bool = _as_bool(os.getenv('ENABLE_KITS'), False)
+
+    app_variant: str = _app_variant()
+    header_prefix: str = _header_prefix()
+    header_bg_color: str = _header_bg_color()
 
     project_root: Path = PROJECT_ROOT
     mock_db_path: Path = Path(os.getenv('MOCK_DB_PATH', str(project_root / 'demo_data' / 'radbox_inventory.db')))
