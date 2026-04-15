@@ -1,6 +1,6 @@
-# QA Version of RAD Box QR Inventory Prototype
+# RAD Box QR Inventory Prototype
 
-This build is configured for the current Airtable base **RAD Operations Tracker (QA)** using the **Inventory** table you exported.
+This build is configured for the current Airtable base **RAD Operations Tracker (LIVE)** using the **Inventory** table you exported.
 
 ## What this update fixes
 
