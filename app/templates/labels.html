@@ -27,7 +27,7 @@
     <img class="whole-unit-label-image" src="{{ whole_unit_label.scan_qr }}" alt="Whole RAD Box Unit QR">
     <div>
       <h3>{{ whole_unit_label.whole_unit.name }}</h3>
-      <p><code>{{ whole_unit_label.whole_unit.code }}</code></p>
+      <p><code>{{ runtime_whole_unit_code() }}</code></p>
     </div>
   </div>
 </section>
@@ -42,7 +42,7 @@
         <img class="label-qr-image" src="{{ label.scan_qr }}" alt="Inventory QR for {{ label.part.name }}">
         <div class="label-copy">
           <h3>{{ label.part.name }}</h3>
-          <p class="label-sku"><code>{{ label.part.sku }}</code></p>
+          <p class="label-sku"><code>{{ runtime_sku(label.part.sku) }}</code></p>
         </div>
       </article>
       {% endfor %}

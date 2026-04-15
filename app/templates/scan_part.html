@@ -4,7 +4,7 @@
   <p><a href="/">&larr; Back to dashboard</a></p>
   <h2>Update {{ part.name }}</h2>
   <p class="subtle">
-    SKU: <code>{{ part.sku }}</code>
+    SKU: <code>{{ runtime_sku(part.sku) }}</code>
     {% if part.container_label %}
     &nbsp; Container: {{ part.container_label }}
     {% endif %}

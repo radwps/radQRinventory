@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .airtable_store import build_airtable_store
-from .config import settings
+from .config import canonical_sku, runtime_sku, runtime_whole_unit_code, settings
 from .mock_store import build_mock_store
 from .store import InventoryError, NotFoundError
 
@@ -50,6 +50,8 @@ def page_context(request: Request, **kwargs: Any) -> dict[str, Any]:
     return {
         'request': request,
         'settings': settings,
+        'runtime_sku': runtime_sku,
+        'runtime_whole_unit_code': runtime_whole_unit_code,
         **kwargs,
     }
 
@@ -68,7 +70,7 @@ def render_part_scan(
     status_code: int = 200,
 ):
     try:
-        part = STORE.get_part(sku)
+        part = STORE.get_part(canonical_sku(sku))
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     normalized_action = preferred_action if preferred_action in VALID_ACTIONS else ''
@@ -109,14 +111,14 @@ def apply_part_submission(
     po_units: int = 1,
 ):
     try:
-        part = STORE.get_part(sku)
+        part = STORE.get_part(canonical_sku(sku))
         apply_kwargs = dict(
-            sku=sku,
+            sku=canonical_sku(sku),
             action=action,
             quantity=int(quantity),
             operator=operator,
             note=note,
-            source=f'qr:part:{sku}:{action}',
+            source=f'qr:part:{runtime_sku(canonical_sku(sku))}:{action}',
         )
         if receive_mode:
             actual_po_units = max(1, int(po_units or 1))
@@ -138,7 +140,7 @@ def apply_part_submission(
     except InventoryError as exc:
         return render_part_scan(
             request,
-            sku=sku,
+            sku=canonical_sku(sku),
             preferred_action=action,
             quantity=max(1, int(quantity or 1)),
             operator=operator,
@@ -156,6 +158,7 @@ def render_whole_unit_scan(
     preferred_action: str = '',
     operator: str = '',
     note: str = 'Whole RAD Unit',
+    code: str = '',
     error: str | None = None,
     status_code: int = 200,
 ):
@@ -172,6 +175,7 @@ def render_whole_unit_scan(
             preferred_action=normalized_action,
             operator=operator,
             note=note or 'Whole RAD Unit',
+            whole_unit_code=code or runtime_whole_unit_code(),
             error=error,
             title='Update Whole RAD Box Unit',
         ),
@@ -274,8 +278,8 @@ def scan_part_submit_legacy(
 
 
 @app.get('/scan/whole-unit', response_class=HTMLResponse)
-def scan_whole_unit(request: Request, action: str = Query(default='')):
-    return render_whole_unit_scan(request, preferred_action=action)
+def scan_whole_unit(request: Request, action: str = Query(default=''), code: str = Query(default='')):
+    return render_whole_unit_scan(request, preferred_action=action, code=code)
 
 
 @app.post('/scan/whole-unit', response_class=HTMLResponse)
@@ -289,8 +293,8 @@ def scan_whole_unit_submit(
 
 
 @app.get('/scan/whole-unit/{action}', response_class=HTMLResponse)
-def scan_whole_unit_legacy(request: Request, action: str):
-    return render_whole_unit_scan(request, preferred_action=action)
+def scan_whole_unit_legacy(request: Request, action: str, code: str = Query(default='')):
+    return render_whole_unit_scan(request, preferred_action=action, code=code)
 
 
 @app.post('/scan/whole-unit/{action}', response_class=HTMLResponse)
@@ -375,7 +379,7 @@ def labels(request: Request, base_url: str | None = None):
 
     part_labels = []
     for part in parts:
-        scan_url = f'{public_base}/scan/part/{part.sku}'
+        scan_url = f'{public_base}/scan/part/{runtime_sku(part.sku)}'
         part_labels.append(
             {
                 'part': part,
@@ -386,7 +390,7 @@ def labels(request: Request, base_url: str | None = None):
 
     whole_unit_label = None
     if whole_unit:
-        whole_url = f'{public_base}/scan/whole-unit'
+        whole_url = f'{public_base}/scan/whole-unit?code={runtime_whole_unit_code()}'
         whole_unit_label = {
             'whole_unit': whole_unit,
             'scan_url': whole_url,

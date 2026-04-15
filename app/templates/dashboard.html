@@ -35,9 +35,9 @@
       </thead>
       <tbody>
         <tr>
-          <td><code>{{ whole_unit.code }}</code></td>
+          <td><code>{{ runtime_whole_unit_code() }}</code></td>
           <td>{{ whole_unit.name }}</td>
-          <td><a class="pill danger" href="/scan/whole-unit">Open scan page</a></td>
+          <td><a class="pill danger" href="/scan/whole-unit?code={{ runtime_whole_unit_code() }}">Open scan page</a></td>
         </tr>
       </tbody>
     </table>
@@ -62,12 +62,12 @@
       <tbody>
         {% for part in parts %}
         <tr class="{% if part.reorder_level > 0 and part.on_hand <= part.reorder_level %}low-stock{% endif %}">
-          <td><code>{{ part.sku }}</code></td>
+          <td><code>{{ runtime_sku(part.sku) }}</code></td>
           <td>{{ part.name }}</td>
           <td>{{ part.container_label or '—' }}</td>
           <td>{{ part.on_hand }}</td>
           <td>{{ part.reorder_level }}</td>
-          <td><a class="pill secondary" href="/scan/part/{{ part.sku }}">Open scan page</a></td>
+          <td><a class="pill secondary" href="/scan/part/{{ runtime_sku(part.sku) }}">Open scan page</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -122,7 +122,7 @@
         {% for txn in transactions %}
         <tr>
           <td>{{ txn.created_at }}</td>
-          <td><code>{{ txn.sku }}</code></td>
+          <td><code>{{ runtime_sku(txn.sku) }}</code></td>
           <td>{{ txn.part_name }}</td>
           <td>{{ txn.action }}</td>
           <td>{{ txn.quantity }}</td>

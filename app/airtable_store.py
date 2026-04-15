@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Sequence
 
 import requests
 
-from .config import settings
+from .config import runtime_sku, settings
 from .part_catalog import find_catalog_entry, sort_in_catalog_order
 from .store import (
     ActionResult,
@@ -454,7 +454,7 @@ class AirtableStore(InventoryStore):
         if settings.field_txn_part:
             fields[settings.field_txn_part] = [part_record_id]
         if settings.field_txn_sku:
-            fields[settings.field_txn_sku] = sku
+            fields[settings.field_txn_sku] = runtime_sku(sku)
         if settings.field_txn_action:
             fields[settings.field_txn_action] = action
         if settings.field_txn_quantity:

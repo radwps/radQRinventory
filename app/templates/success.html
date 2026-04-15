@@ -18,7 +18,7 @@
       <tbody>
         {% for part in result.touched_parts %}
         <tr>
-          <td><code>{{ part.sku }}</code></td>
+          <td><code>{{ runtime_sku(part.sku) }}</code></td>
           <td>{{ part.name }}</td>
           <td>{{ part.on_hand }}</td>
         </tr>

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Sequence
 
-from .config import settings
+from .config import runtime_sku, settings
 from .part_catalog import sort_in_catalog_order
 from .store import (
     ActionResult,

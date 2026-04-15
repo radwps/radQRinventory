@@ -24,6 +24,7 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
 class Settings:
     app_title: str = os.getenv('APP_TITLE', 'RAD Box QR Inventory')
     public_base_url: str = (os.getenv('PUBLIC_BASE_URL') or os.getenv('RENDER_EXTERNAL_URL') or '').strip()
+    sku_prefix: str = os.getenv('SKU_PREFIX', '').strip()
     store_mode: str = os.getenv('STORE_MODE', 'mock').strip().lower()
     allow_negative_stock: bool = _as_bool(os.getenv('ALLOW_NEGATIVE_STOCK'), False)
     enable_kits: bool = _as_bool(os.getenv('ENABLE_KITS'), False)
@@ -73,3 +74,26 @@ class Settings:
 
 
 settings = Settings()
+
+
+WHOLE_UNIT_BASE_CODE = 'WHOLE-RAD-BOX'
+
+
+def runtime_sku(sku: str) -> str:
+    prefix = (settings.sku_prefix or '').strip()
+    if not sku:
+        return sku
+    if prefix and sku.startswith(prefix):
+        return sku
+    return f'{prefix}{sku}' if prefix else sku
+
+
+def canonical_sku(sku: str) -> str:
+    prefix = (settings.sku_prefix or '').strip()
+    if prefix and sku.startswith(prefix):
+        return sku[len(prefix):]
+    return sku
+
+
+def runtime_whole_unit_code() -> str:
+    return runtime_sku(WHOLE_UNIT_BASE_CODE)
