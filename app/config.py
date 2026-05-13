@@ -26,7 +26,6 @@ def _header_prefix() -> str:
     return "QA Version - " if _app_variant() == "qa" else ""
 
 def _header_bg_color() -> str:
-    # pick whatever QA color you like
     return "#ffa500" if _app_variant() == "qa" else "#0f172a"
 
 @dataclass(frozen=True)
