@@ -4,3 +4,7 @@ __pycache__
 .env
 .git
 .gitignore
+tests/
+demo_data/
+*.md
+.env.example

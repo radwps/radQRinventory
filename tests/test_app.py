@@ -23,7 +23,7 @@ def test_dashboard_loads() -> None:
     assert response.status_code == 200
     assert 'RAD Box QR Inventory' in response.text
     assert PRIMARY_NAME in response.text
-    assert 'Whole-box kit labels are currently disabled' in response.text
+    assert 'Kit-level subtract codes' not in response.text
 
 
 def test_generic_part_scan_page_loads() -> None:
@@ -34,7 +34,7 @@ def test_generic_part_scan_page_loads() -> None:
     assert 'Subtract inventory' in response.text
 
 
-def test_part_subtract_creates_transaction_and_updates_quantity() -> None:
+def test_part_add_creates_transaction_and_updates_quantity() -> None:
     before = STORE.get_part(PRIMARY_SKU).on_hand
     response = client.post(f'/scan/part/{PRIMARY_SKU}', data={'action': 'add', 'quantity': '2', 'operator': 'RB'})
     assert response.status_code == 200
